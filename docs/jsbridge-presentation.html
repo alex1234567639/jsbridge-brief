@@ -1226,7 +1226,7 @@
       <section class="slide title-slide active" data-title="封面">
         <div class="brand">Omniguider · JSBridge</div>
         <h1>JSBridge 整合方案</h1>
-        <p class="subtitle">讓 App、Web 與 AI 都站在同一份規格上</p>
+        <p class="subtitle">讓 App 與 Web 能站在同一份規格上開發</p>
         <p class="lead">
           以可重複使用的契約與模組化 SDK，讓前端專注呼叫、App 專注業務；AI 則協助盤點、產生草稿、驗證與交接。
         </p>
@@ -1369,9 +1369,8 @@
                   >文件分散難管理</span
                 >
               </li>
-              <li>Web／iOS／Android method／event 名稱容易不一致</li>
-              <li>多一個功能，就要反覆核對名稱、欄位與回傳</li>
               <li>文件、sample、手抄 wire 容易造成 bug</li>
+              <li>多一個功能，就要反覆核對名稱、欄位與回傳</li>
             </ul>
           </div>
           <div class="card good">
@@ -1474,12 +1473,12 @@ import { createBridge, BridgeMethod } from
 const bridge = createBridge({
   debug: import.meta.env.DEV,
   mock: import.meta.env.DEV ? {
-    "user.getInfo": () => ({ uuid: "dev" }),
+    "user.getInfo": () => ({ uuid: "xxxxxxxxxxx" }),
   } : false,
 });
 
 await bridge.user.getInfo();
-bridge.navigation.setHeaderTitle("背包");</div>
+bridge.navigation.setHeaderTitle("定點導覽");</div>
           </div>
           <div class="card">
             <span class="tag ok">重點</span>
@@ -1663,20 +1662,19 @@ host.emitEvent(BridgeEvent.favoriteUpdated, …)</div>
           </div>
           <div class="card">
             <span class="tag">規格</span>
-            <h3>建立 SSOT 與架構</h3>
+            <h3>建立架構</h3>
             <ul>
-              <li>產出 <code>bridge.catalog.json</code>／<code>bridge.project.json</code></li>
+              <li>產出統一管理的 JSON 檔案</li>
               <li>定義 SDK、專案套件、產品端三層職責</li>
-              <li>method／event 以 JSON 為唯一來源（SSOT）</li>
             </ul>
           </div>
           <div class="card">
             <span class="tag">產出</span>
             <h3>codegen 與流程自動化</h3>
             <ul>
-              <li>自動產生 Web／iOS／Android 的 method／event 名稱</li>
-              <li>產出 App 端 Bridge 初始化與註冊範本</li>
-              <li>Cursor skills（codegen／release／sync）串起發版流程</li>
+              <li>以 JSON 檔案來驅動產生三方需要的程式碼</li>
+              <li>產出 Bridge 初始化與註冊範本</li>
+              <li>建立發版機制與流程</li>
             </ul>
           </div>
         </div>
@@ -1688,12 +1686,12 @@ host.emitEvent(BridgeEvent.favoriteUpdated, …)</div>
       <!-- 13 -->
       <section class="slide" data-title="總結">
         <div class="brand">總結</div>
-        <h2>規格一次定義，三端對齊、模組可重用</h2>
+        <h2>規格驅動，三端版本對齊、模組化可共用</h2>
         <div class="grid-2">
           <div class="card">
             <span class="tag ok">核心做法</span>
             <ul class="list-check">
-              <li>規格 JSON 為 SSOT（catalog + bridge.project.json）</li>
+              <li>以 JSON 當規格作為驅動</li>
               <li>共用進 SDK、專案差異進專案套件</li>
               <li>改規格 → codegen → 發版 → 產品端更新版號</li>
               <li>Web 呼叫／訂閱，App 註冊業務，不手打 wire 字串</li>
@@ -1702,8 +1700,8 @@ host.emitEvent(BridgeEvent.favoriteUpdated, …)</div>
           <div class="card">
             <span class="tag">帶來改變</span>
             <ul>
-              <li>少三方會議、少對欄位與字串</li>
-              <li>掃碼、導頁等能力跨專案重用</li>
+              <li>減少三方會議、減少對欄位與字串的核對</li>
+              <li>開啟鏡頭、導頁等重複功能可跨專案使用</li>
               <li>三端同版本號發版，降低不一致</li>
               <li>AI 協助盤點規格、codegen 與發版流程</li>
             </ul>
