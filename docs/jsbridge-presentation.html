@@ -901,11 +901,28 @@
         margin-bottom: 0;
       }
 
+      .code-panel.multi-image-mode .code-panel-img {
+        flex: 1;
+        max-height: none;
+        margin-bottom: 0;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+      }
+
+      .code-panel.multi-image-mode .code-panel-img img {
+        width: 100%;
+      }
+
       .code-panel-img img {
         width: 40%;
         height: auto;
         display: block;
         border-radius: 0.4rem;
+      }
+
+      .code-panel-img img + img {
+        margin-top: 0.75rem;
       }
 
       .code-panel.image-mode {
@@ -1358,15 +1375,21 @@
             </ul>
           </div>
           <div class="card good">
-            <span class="tag ok">現在</span>
+            <span class="tag ok">目標</span>
             <h3>規格驅動：一次定義，套件重複使用</h3>
             <ul>
-              <li>以規格 JSON 為唯一來源（SSOT）</li>
-              <li>共用進 SDK、專案差異進專案套件</li>
-              <li>
-                前端需求寫進規格 → codegen 產出三端 method／event 名稱
-              </li>
+              <li>共用方法進 SDK、專案差異進專案套件</li>
+              <li>以規格 JSON 為唯一來源 → codegen 產出三端 method／event 名稱</li>
               <li>前端呼叫封裝介面；App 只實作業務 Handler</li>
+              <li>
+                <span
+                  class="has-code"
+                  data-code="wire-handcopy-error-examples"
+                  role="button"
+                  tabindex="0"
+                  >減少手抄 wire 的錯誤</span
+                >
+              </li>
             </ul>
           </div>
         </div>
@@ -1378,9 +1401,9 @@
         <h2>模組化，減少三方溝通成本</h2>
         <div class="grid-3">
           <div class="card">
-            <div class="metric">少三方會議</div>
+            <div class="metric">減少三方會議</div>
             <p>
-              Web／iOS／Android 以規格為準，不必每加功能就開會對欄位、對字串。
+              以規格為準，不必每加功能或是開新專案就開會對欄位、對字串。
             </p>
           </div>
           <div class="card">
@@ -1894,6 +1917,14 @@ const qr = await bridge.scanner.scanQr({
           desc: "專案的 JSBridge 規範單獨在 ClickUp 文件中維護，規格散落、難重用。",
           image: "img/cu_ document.png",
         },
+        "wire-handcopy-error-examples": {
+          title: "減少手抄 wire 的錯誤",
+          desc: "使用規格驅動產出的 method/event 名稱對照，避免字串手打造成的錯誤。",
+          images: [
+            "img/wire-handcopy-error-examples-1.png",
+            "img/wire-handcopy-error-examples-2.jpg",
+          ],
+        },
         "web-create": {
           title: "Web：createBridge()",
           desc: "前端安裝套件後建立 bridge，本機可用 mock。",
@@ -2280,13 +2311,52 @@ implementation(
         codeBody.textContent = "";
         codeImageWrap.hidden = true;
         codePanel.classList.remove("image-mode");
+        codePanel.classList.remove("multi-image-mode");
 
         const hasBlocks = !!(snip.blocks && snip.blocks.length);
         const hasBody = !!snip.body;
-        if (snip.image) {
+        if (snip.images && snip.images.length) {
+          if (snip.images.length > 1) {
+            codePanel.classList.add("multi-image-mode");
+          }
+
+          codeImage.src = snip.images[0];
+          if (snip.title === "減少手抄 wire 的錯誤") {
+            codeImage.alt = "wire/名稱對照（方法清單）";
+          } else {
+            codeImage.alt = snip.title;
+          }
+          codeImageWrap.hidden = false;
+
+          // 清掉先前附加的多餘圖片（保留第一張 codeImage）
+          while (codeImageWrap.children.length > 1) {
+            codeImageWrap.removeChild(codeImageWrap.lastElementChild);
+          }
+
+          snip.images.slice(1).forEach((src, idx) => {
+            const img = document.createElement("img");
+            img.src = src;
+            if (snip.title === "減少手抄 wire 的錯誤") {
+              img.alt = idx === 0 ? "回傳格式與錯誤碼示意" : `補充圖片 ${idx + 2}`;
+            } else {
+              img.alt = `${snip.title} (${idx + 2})`;
+            }
+            codeImageWrap.appendChild(img);
+          });
+
+          if (!hasBlocks && !hasBody) {
+            codePanel.classList.add("image-mode");
+          }
+        } else if (snip.image) {
           codeImage.src = snip.image;
           codeImage.alt = snip.title;
           codeImageWrap.hidden = false;
+
+          // 從上一個「多張圖片」範例切換過來時，清掉多餘 img（保留 codeImage 這一張）
+          while (codeImageWrap.children.length > 1) {
+            codeImageWrap.removeChild(codeImageWrap.lastElementChild);
+          }
+
           if (!hasBlocks && !hasBody) {
             codePanel.classList.add("image-mode");
           }
@@ -2312,6 +2382,7 @@ implementation(
         if (!codeOpen) return;
         codeBackdrop.classList.remove("open");
         codePanel.classList.remove("open");
+        codePanel.classList.remove("multi-image-mode");
         codePanel.setAttribute("aria-hidden", "true");
         codeOpen = false;
         setTimeout(() => {
