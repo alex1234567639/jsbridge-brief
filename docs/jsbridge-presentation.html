@@ -1,0 +1,2390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Omniguider JSBridge 整合方案</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #0f1c24;
+        --ink-soft: #2a3d48;
+        --muted: #5a6f7a;
+        --line: rgba(15, 28, 36, 0.12);
+        --bg: #e8f0f2;
+        --panel: rgba(255, 255, 255, 0.72);
+        --accent: #0d8a7c;
+        --accent-2: #c45c26;
+        --ok: #1f7a4c;
+        --warn: #b45309;
+        --slide-pad: clamp(2rem, 5vw, 4.5rem);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        font-family: "Noto Sans TC", "Outfit", sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+
+      body {
+        background:
+          radial-gradient(ellipse 80% 60% at 10% 0%, rgba(13, 138, 124, 0.18), transparent 55%),
+          radial-gradient(ellipse 70% 50% at 100% 100%, rgba(196, 92, 38, 0.12), transparent 50%),
+          linear-gradient(160deg, #dce8ec 0%, #eef4f5 45%, #e4ecee 100%);
+      }
+
+      .deck {
+        position: relative;
+        height: 100%;
+        width: 100%;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        padding: var(--slide-pad);
+        padding-bottom: 5rem;
+        opacity: 0;
+        transform: translateY(12px);
+        transition:
+          opacity 0.35s ease,
+          transform 0.35s ease;
+      }
+
+      .slide.active {
+        display: flex;
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .brand {
+        font-family: "Outfit", sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--accent);
+        font-size: clamp(1rem, 2vw, 1.25rem);
+        margin-bottom: 0.75rem;
+      }
+
+      h1 {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        font-size: clamp(2rem, 4.8vw, 3.6rem);
+        line-height: 1.15;
+        max-width: 18ch;
+        margin-bottom: 0.55rem;
+      }
+
+      .subtitle {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-size: clamp(1.1rem, 2vw, 1.4rem);
+        font-weight: 600;
+        color: var(--ink-soft);
+        line-height: 1.4;
+        margin-bottom: 1rem;
+      }
+
+      h2 {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+        line-height: 1.2;
+        margin-bottom: 1.25rem;
+      }
+
+      .lead {
+        font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+        color: var(--ink-soft);
+        line-height: 1.55;
+        max-width: 42rem;
+      }
+
+      .sub {
+        margin-top: 1.5rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+
+      @media (max-width: 900px) {
+        .grid-2,
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--panel);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        padding: 1.15rem 1.25rem;
+      }
+
+      .card h3 {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 0.45rem;
+      }
+
+      .card p,
+      .card li {
+        color: var(--ink-soft);
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .card ul {
+        padding-left: 1.1rem;
+      }
+
+      .card li + li {
+        margin-top: 0.35rem;
+      }
+
+      .card-effect {
+        margin-top: 0.5rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.45;
+      }
+
+      .tag {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 0.35rem;
+      }
+
+      .tag.warn {
+        color: var(--warn);
+      }
+
+      .tag.ok {
+        color: var(--ok);
+      }
+
+      .flow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0.65rem;
+        margin-top: 0.75rem;
+      }
+
+      .flow-item {
+        flex: 1 1 140px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        padding: 0.9rem 1rem;
+        min-width: 0;
+      }
+
+      .flow-arrow {
+        display: flex;
+        align-items: center;
+        color: var(--accent);
+        font-family: "Outfit", sans-serif;
+        font-weight: 700;
+        font-size: 1.25rem;
+      }
+
+      .mono {
+        font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+        font-size: 0.82rem;
+        background: rgba(15, 28, 36, 0.06);
+        border-radius: 0.5rem;
+        padding: 0.85rem 1rem;
+        overflow-x: auto;
+        line-height: 1.55;
+        color: var(--ink);
+        white-space: pre;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        margin-top: 0.5rem;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 0.65rem 0.75rem;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+
+      th {
+        font-family: "Outfit", sans-serif;
+        font-weight: 700;
+        color: var(--muted);
+        font-size: 0.8rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .pill {
+        background: rgba(13, 138, 124, 0.12);
+        color: var(--accent);
+        border-radius: 999px;
+        padding: 0.35rem 0.8rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .link-list {
+        margin-top: 0.75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem 1.25rem;
+      }
+
+      .link-list a {
+        color: var(--accent);
+        text-decoration: underline;
+        text-underline-offset: 0.18em;
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+
+      .link-list a:hover,
+      .link-list a:focus-visible {
+        color: var(--ink);
+        outline: none;
+      }
+
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        align-items: stretch;
+        margin-top: 0.5rem;
+      }
+
+      @media (max-width: 900px) {
+        .compare {
+          grid-template-columns: 1fr;
+        }
+        .compare .vs {
+          display: none;
+        }
+      }
+
+      .compare .vs {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Outfit", sans-serif;
+        font-weight: 800;
+        color: var(--muted);
+      }
+
+      .bad {
+        border-color: rgba(180, 83, 9, 0.35);
+      }
+
+      .good {
+        border-color: rgba(13, 138, 124, 0.4);
+      }
+
+      .footer-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.85rem var(--slide-pad);
+        background: rgba(255, 255, 255, 0.55);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid var(--line);
+        z-index: 10;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      #slideLabel {
+        justify-self: start;
+        min-width: 0;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .progress {
+        width: 220px;
+        height: 4px;
+        background: rgba(15, 28, 36, 0.08);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .progress > span {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent), #1aa896);
+        transition: width 0.25s ease;
+      }
+
+      .nav-hint {
+        display: flex;
+        align-items: center;
+        justify-self: end;
+        gap: 0.35rem;
+        white-space: nowrap;
+      }
+
+      .nav-btn {
+        font-family: "Outfit", sans-serif;
+        font-size: 0.75rem;
+        line-height: 1;
+        background: rgba(15, 28, 36, 0.08);
+        border: none;
+        border-radius: 0.3rem;
+        padding: 0.2rem 0.45rem;
+        color: var(--ink-soft);
+        cursor: pointer;
+      }
+
+      .nav-btn:hover:not(:disabled),
+      .nav-btn:focus-visible:not(:disabled) {
+        background: rgba(13, 138, 124, 0.15);
+        color: var(--accent);
+        outline: none;
+      }
+
+      .nav-btn:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+
+      .nav-hint kbd {
+        font-family: "Outfit", sans-serif;
+        font-size: 0.75rem;
+        background: rgba(15, 28, 36, 0.08);
+        border-radius: 0.3rem;
+        padding: 0.1rem 0.35rem;
+      }
+
+      .arch {
+        display: grid;
+        gap: 0.65rem;
+        margin-top: 0.75rem;
+      }
+
+      .arch-row {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      @media (max-width: 700px) {
+        .arch-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .arch-label {
+        font-family: "Outfit", sans-serif;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--accent);
+      }
+
+      .arch-box {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        padding: 0.85rem 1rem;
+        font-size: 0.95rem;
+        color: var(--ink-soft);
+      }
+
+      .metric {
+        font-family: "Outfit", sans-serif;
+        font-weight: 800;
+        font-size: clamp(1.6rem, 3vw, 2.2rem);
+        color: var(--accent);
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin-bottom: 0.35rem;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 1.25rem;
+        align-items: start;
+      }
+
+      @media (max-width: 900px) {
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .list-check {
+        list-style: none;
+        padding: 0;
+      }
+
+      .list-check li {
+        position: relative;
+        padding-left: 1.4rem;
+        margin-bottom: 0.55rem;
+        color: var(--ink-soft);
+        line-height: 1.45;
+      }
+
+      .list-check li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      .example-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+        gap: 1rem;
+        align-items: stretch;
+        margin-top: 0.5rem;
+        min-height: 0;
+        flex: 1;
+      }
+
+      .example-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .example-steps li {
+        display: grid;
+        grid-template-columns: 2rem 1fr;
+        gap: 0.65rem;
+        align-items: center;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        padding: 0.7rem 0.9rem;
+        color: var(--ink-soft);
+        font-size: 0.9rem;
+        line-height: 1.4;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+
+      .example-steps .step-num {
+        font-family: "Outfit", sans-serif;
+        font-weight: 800;
+        font-size: 1rem;
+        color: var(--accent);
+        line-height: 1.4;
+      }
+
+      .example-steps li:hover,
+      .example-steps li:focus-visible {
+        border-color: rgba(13, 138, 124, 0.35);
+        background: rgba(13, 138, 124, 0.05);
+        outline: none;
+      }
+
+      .example-steps li.active {
+        border-color: rgba(13, 138, 124, 0.5);
+        background: rgba(13, 138, 124, 0.1);
+        color: var(--ink);
+      }
+
+      .example-steps li.active .step-num {
+        color: var(--accent);
+      }
+
+      .example-detail {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        padding: 1rem 1.1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .example-detail-title {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .example-detail-desc {
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+
+      .example-detail-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .example-detail-body .code-block-label {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--ink-soft);
+      }
+
+      .example-detail-body .code-block-file {
+        font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 0.72rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .example-detail-body .mono {
+        font-size: 0.78rem;
+        margin: 0;
+      }
+
+      .example-detail-body .plain {
+        color: var(--ink-soft);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 900px) {
+        .example-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .agenda {
+        list-style: none;
+        padding: 0;
+        margin-top: 0.5rem;
+        display: grid;
+        gap: 0.55rem;
+        max-width: 40rem;
+      }
+
+      .agenda li {
+        display: grid;
+        grid-template-columns: 2.25rem 1fr;
+        gap: 0.75rem;
+        align-items: baseline;
+        padding: 0.7rem 0.9rem;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+      }
+
+      .agenda .agenda-num {
+        font-family: "Outfit", sans-serif;
+        font-weight: 800;
+        font-size: 1.05rem;
+        color: var(--accent);
+      }
+
+      .agenda .agenda-title {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-weight: 700;
+        font-size: 1.02rem;
+        color: var(--ink);
+      }
+
+      .agenda .agenda-desc {
+        display: block;
+        margin-top: 0.15rem;
+        font-size: 0.88rem;
+        font-weight: 400;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .title-slide h1 {
+        max-width: 16ch;
+      }
+
+      .title-slide .lead {
+        max-width: 36rem;
+      }
+
+      /* Clickable text → code panel / 可點文字開啟程式碼 */
+      button.pill,
+      button.card,
+      button.flow-item,
+      button.arch-box {
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      button.card,
+      button.flow-item,
+      button.arch-box {
+        width: 100%;
+        display: block;
+      }
+
+      .list-check li.has-code {
+        cursor: pointer;
+        border-radius: 0.4rem;
+        padding: 0.15rem 0.35rem 0.15rem 1.4rem;
+        margin-left: -0.35rem;
+        text-decoration: underline;
+        text-decoration-style: dashed;
+        text-decoration-color: rgba(13, 138, 124, 0.55);
+        text-underline-offset: 0.2em;
+      }
+
+      .list-check li.has-code:hover {
+        background: rgba(13, 138, 124, 0.08);
+      }
+
+      .has-code {
+        cursor: pointer;
+        position: relative;
+        transition:
+          background 0.15s ease,
+          box-shadow 0.15s ease,
+          border-color 0.15s ease;
+      }
+
+      .has-code:hover,
+      .has-code:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(13, 138, 124, 0.35);
+      }
+
+      .pill.has-code {
+        border: 1px dashed rgba(13, 138, 124, 0.45);
+      }
+
+      .pill.has-code::after,
+      .flow-item.has-code::after,
+      .card.has-code > .tag::after,
+      .arch-box.has-code::after {
+        content: "範例";
+        display: inline-block;
+        margin-left: 0.4rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--accent);
+        opacity: 0.75;
+        vertical-align: middle;
+      }
+
+      .flow-item.has-code {
+        border-style: dashed;
+        border-color: rgba(13, 138, 124, 0.45);
+      }
+
+      .card.has-code {
+        border-style: dashed;
+      }
+
+      .arch-box.has-code {
+        border-style: dashed;
+        border-color: rgba(13, 138, 124, 0.45);
+        cursor: pointer;
+      }
+
+      .code-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 28, 36, 0.42);
+        z-index: 40;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+
+      .code-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .code-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: min(520px, 100%);
+        height: 100%;
+        z-index: 50;
+        background: #f7fbfb;
+        border-left: 1px solid var(--line);
+        box-shadow: -12px 0 40px rgba(15, 28, 36, 0.12);
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+        display: flex;
+        flex-direction: column;
+        padding: 1.25rem 1.35rem 1.5rem;
+      }
+
+      .code-panel.open {
+        transform: translateX(0);
+      }
+
+      .code-panel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .code-panel-head h3 {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .code-panel-head p {
+        margin-top: 0.25rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+
+      .code-close {
+        flex-shrink: 0;
+        border: none;
+        background: rgba(15, 28, 36, 0.06);
+        color: var(--ink);
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 1.1rem;
+        line-height: 1;
+      }
+
+      .code-close:hover {
+        background: rgba(13, 138, 124, 0.15);
+        color: var(--accent);
+      }
+
+      .code-panel .mono {
+        font-size: 0.8rem;
+        background: #0f1c24;
+        color: #e8f0f2;
+        border-radius: 0.75rem;
+        padding: 1rem 1.1rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+      }
+
+      #codeBody:not([hidden]) {
+        flex: 1;
+        overflow: auto;
+        min-height: 0;
+      }
+
+      .code-blocks {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        min-height: 0;
+      }
+
+      .code-blocks[hidden],
+      .code-panel .mono[hidden],
+      .code-panel-img[hidden] {
+        display: none !important;
+      }
+
+      .code-block {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        flex-shrink: 0;
+      }
+
+      .code-block-label {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--ink-soft);
+      }
+
+      .code-block-file {
+        font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .code-panel-img {
+        flex: 0 0 auto;
+        max-height: 42%;
+        overflow: auto;
+        border-radius: 0.75rem;
+        background: rgba(15, 28, 36, 0.04);
+        border: 1px solid var(--line);
+        padding: 0.5rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        margin-bottom: 0.75rem;
+      }
+
+      .code-panel.image-mode .code-panel-img {
+        flex: 1;
+        max-height: none;
+        margin-bottom: 0;
+      }
+
+      .code-panel-img img {
+        width: 40%;
+        height: auto;
+        display: block;
+        border-radius: 0.4rem;
+      }
+
+      .code-panel.image-mode {
+        width: min(720px, 100%);
+      }
+
+      .code-panel.image-mode .code-panel-img img {
+        width: 100%;
+      }
+
+      .code-panel-hint {
+        margin-top: 0.75rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .card.bad .has-code,
+      .card.good .has-code {
+        text-decoration: underline;
+        text-decoration-style: dashed;
+        text-decoration-color: rgba(13, 138, 124, 0.55);
+        text-underline-offset: 0.2em;
+        border-radius: 0.25rem;
+      }
+
+      .card.bad .has-code:hover,
+      .card.bad .has-code:focus-visible,
+      .card.good .has-code:hover,
+      .card.good .has-code:focus-visible {
+        background: rgba(13, 138, 124, 0.08);
+      }
+
+      .card.bad .has-code::after {
+        content: "示意";
+        display: inline-block;
+        margin-left: 0.3rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: var(--accent);
+        opacity: 0.8;
+      }
+
+      .card.good .has-code::after {
+        content: "範例";
+        display: inline-block;
+        margin-left: 0.3rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: var(--accent);
+        opacity: 0.8;
+      }
+
+      .bridge-diagram {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem 1.25rem;
+        align-items: stretch;
+        margin-top: 0.5rem;
+        max-width: 56rem;
+      }
+
+      .bridge-node {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        padding: 1.25rem 1.35rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.45rem;
+        animation: bridge-rise 0.55s ease both;
+      }
+
+      .bridge-node.web {
+        animation-delay: 0.05s;
+      }
+
+      .bridge-node.app {
+        animation-delay: 0.2s;
+      }
+
+      .bridge-node .node-role {
+        font-family: "Outfit", sans-serif;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .bridge-node h3 {
+        font-family: "Outfit", "Noto Sans TC", sans-serif;
+        font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .bridge-node p {
+        color: var(--ink-soft);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .bridge-node ul {
+        margin-top: 0.35rem;
+        padding-left: 1.05rem;
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      .bridge-mid {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.85rem;
+        min-width: 9.5rem;
+        animation: bridge-rise 0.55s ease 0.12s both;
+      }
+
+      .bridge-core {
+        position: relative;
+        width: 100%;
+        text-align: center;
+        padding: 1rem 0.85rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(13, 138, 124, 0.16), rgba(196, 92, 38, 0.12));
+        border: 1px solid rgba(13, 138, 124, 0.35);
+        font-family: "Outfit", sans-serif;
+        font-weight: 800;
+        font-size: 1.05rem;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        box-shadow: 0 8px 24px rgba(13, 138, 124, 0.12);
+      }
+
+      .bridge-core span {
+        display: block;
+        margin-top: 0.2rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+
+      .bridge-lane {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .bridge-arrow {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--ink-soft);
+        white-space: nowrap;
+      }
+
+      .bridge-arrow .track {
+        flex: 1;
+        height: 2px;
+        border-radius: 999px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .bridge-arrow.to-app .track {
+        background: linear-gradient(90deg, rgba(13, 138, 124, 0.15), var(--accent));
+      }
+
+      .bridge-arrow.to-web .track {
+        background: linear-gradient(90deg, var(--accent-2), rgba(196, 92, 38, 0.15));
+      }
+
+      .bridge-arrow .track::after {
+        content: "";
+        position: absolute;
+        top: -3px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        animation: bridge-pulse 1.8s ease-in-out infinite;
+      }
+
+      .bridge-arrow.to-app .track::after {
+        right: 0;
+        background: var(--accent);
+      }
+
+      .bridge-arrow.to-web .track::after {
+        left: 0;
+        background: var(--accent-2);
+        animation-delay: 0.9s;
+      }
+
+      .bridge-arrow .dir {
+        font-family: "Outfit", sans-serif;
+        font-size: 0.9rem;
+        color: var(--accent);
+      }
+
+      .bridge-arrow.to-web .dir {
+        color: var(--accent-2);
+      }
+
+      .bridge-caption {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        animation: bridge-rise 0.55s ease 0.28s both;
+      }
+
+      .bridge-caption .cap {
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px dashed var(--line);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+        line-height: 1.45;
+      }
+
+      .bridge-caption .cap strong {
+        display: block;
+        font-family: "Outfit", sans-serif;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 0.2rem;
+      }
+
+      .bridge-caption .cap.method strong {
+        color: var(--accent);
+      }
+
+      .bridge-caption .cap.event strong {
+        color: var(--accent-2);
+      }
+
+      @keyframes bridge-rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes bridge-pulse {
+        0%,
+        100% {
+          opacity: 0.35;
+          transform: scale(0.85);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.15);
+        }
+      }
+
+      @media (max-width: 820px) {
+        .bridge-diagram {
+          grid-template-columns: 1fr;
+        }
+
+        .bridge-mid {
+          min-width: 0;
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .bridge-core {
+          width: auto;
+          min-width: 10rem;
+        }
+
+        .bridge-lane {
+          flex: 1 1 12rem;
+        }
+
+        .bridge-caption {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="deck" id="deck">
+      <!-- 1 -->
+      <section class="slide title-slide active" data-title="封面">
+        <div class="brand">Omniguider · JSBridge</div>
+        <h1>JSBridge 整合方案</h1>
+        <p class="subtitle">讓 App、Web 與 AI 都站在同一份規格上</p>
+        <p class="lead">
+          以可重複使用的契約與模組化 SDK，讓前端專注呼叫、App 專注業務；AI 則協助盤點、產生草稿、驗證與交接。
+        </p>
+        <div class="pill-row">
+          <span class="pill">規格驅動</span>
+          <span class="pill">模組化</span>
+          <span class="pill">可重複使用</span>
+          <span class="pill">三端對齊</span>
+          <span class="pill">AI 輔助落地</span>
+        </div>
+        <p class="sub">簡報操作：← → 或空白鍵翻頁 · 點虛線／「範例」看程式碼 · Esc 關閉範例</p>
+      </section>
+
+      <!-- 2 -->
+      <section class="slide" data-title="大綱">
+        <div class="brand">本次簡報</div>
+        <h2>大綱</h2>
+        <ol class="agenda">
+          <li>
+            <span class="agenda-num">01</span>
+            <div>
+              <span class="agenda-title">概念</span>
+              <span class="agenda-desc">什麼是 JSBridge：Web 與原生的通訊橋樑</span>
+            </div>
+          </li>
+          <li>
+            <span class="agenda-num">02</span>
+            <div>
+              <span class="agenda-title">前情提要</span>
+              <span class="agenda-desc">痛點 → 提案 → 預期效益</span>
+            </div>
+          </li>
+          <li>
+            <span class="agenda-num">03</span>
+            <div>
+              <span class="agenda-title">怎麼做</span>
+              <span class="agenda-desc">三層架構、Web／App 使用方式</span>
+            </div>
+          </li>
+          <li>
+            <span class="agenda-num">04</span>
+            <div>
+              <span class="agenda-title">實際範例</span>
+              <span class="agenda-desc">Method／Event + QR 掃碼實際流程</span>
+            </div>
+          </li>
+          <li>
+            <span class="agenda-num">05</span>
+            <div>
+              <span class="agenda-title">AI在本案扮演的角色</span>
+              <span class="agenda-desc">開發流程、AI 輔助落地</span>
+            </div>
+          </li>
+          <li>
+            <span class="agenda-num">06</span>
+            <div>
+              <span class="agenda-title">總結</span>
+              <span class="agenda-desc">核心做法、帶來改變與相關連結</span>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 3 -->
+      <section class="slide" data-title="什麼是 JSBridge">
+        <div class="brand">概念</div>
+        <h2>JSBridge：Web 與原生 App 的通訊橋樑</h2>
+        <div class="bridge-diagram">
+          <div class="bridge-node web">
+            <div class="node-role">Web</div>
+            <h3>網頁（WebView）</h3>
+            <p>跑在 App 內嵌瀏覽器，用 JavaScript 呼叫／接收訊息。</p>
+            <ul>
+              <li>呼叫原生能力（掃碼、取使用者…）</li>
+              <li>訂閱 App 推播事件</li>
+            </ul>
+          </div>
+
+          <div class="bridge-mid">
+            <div class="bridge-lane">
+              <div class="bridge-arrow to-app">
+                <span>Method</span>
+                <span class="track" aria-hidden="true"></span>
+                <span class="dir">→</span>
+              </div>
+            </div>
+            <div class="bridge-core">
+              JSBridge
+              <span>統一訊息通道</span>
+            </div>
+            <div class="bridge-lane">
+              <div class="bridge-arrow to-web">
+                <span class="dir">←</span>
+                <span class="track" aria-hidden="true"></span>
+                <span>Event</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bridge-node app">
+            <div class="node-role">Native</div>
+            <h3>iOS／Android App</h3>
+            <p>提供原生能力，註冊處理並可主動通知網頁。</p>
+            <ul>
+              <li>實作掃碼、導頁、權限等</li>
+              <li>推播事件給 Web（如收藏更新）</li>
+            </ul>
+          </div>
+
+          <div class="bridge-caption">
+            <div class="cap method">
+              <strong>Method · Web → App</strong>
+              網頁「請 App 做事」：例如掃碼、關 WebView、設標題。需要結果時會帶
+              <code>requestId</code> 等待回傳。
+            </div>
+            <div class="cap event">
+              <strong>Event · App → Web</strong>
+              App「主動通知網頁」：例如收藏已更新、請 Web 開 dialog。Web 用
+              <code>onEvent</code> 訂閱。
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section class="slide" data-title="痛點與提案">
+        <div class="brand">痛點 → 提案</div>
+        <h2>模組化 SDK：減少三方溝通、跨專案可共用</h2>
+        <div class="grid-2">
+          <div class="card bad">
+            <span class="tag warn">以前</span>
+            <h3>各自實作，無法重用</h3>
+            <ul>
+              <li>
+                每個專案各自做 Bridge，<span
+                  class="has-code"
+                  data-code="docs-scattered"
+                  role="button"
+                  tabindex="0"
+                  >文件分散難管理</span
+                >
+              </li>
+              <li>Web／iOS／Android method／event 名稱容易不一致</li>
+              <li>多一個功能，就要反覆核對名稱、欄位與回傳</li>
+              <li>文件、sample、手抄 wire 容易造成 bug</li>
+            </ul>
+          </div>
+          <div class="card good">
+            <span class="tag ok">現在</span>
+            <h3>規格驅動：一次定義，套件重複使用</h3>
+            <ul>
+              <li>以規格 JSON 為唯一來源（SSOT）</li>
+              <li>共用進 SDK、專案差異進專案套件</li>
+              <li>
+                前端需求寫進規格 → codegen 產出三端 method／event 名稱
+              </li>
+              <li>前端呼叫封裝介面；App 只實作業務 Handler</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section class="slide" data-title="預期效益">
+        <div class="brand">預期效益</div>
+        <h2>模組化，減少三方溝通成本</h2>
+        <div class="grid-3">
+          <div class="card">
+            <div class="metric">少三方會議</div>
+            <p>
+              Web／iOS／Android 以規格為準，不必每加功能就開會對欄位、對字串。
+            </p>
+          </div>
+          <div class="card">
+            <div class="metric">可重複使用</div>
+            <p>掃碼、導頁、語系等重複的功能組成共用模組；新專案安裝套件即可重用，不必重寫 Bridge。</p>
+          </div>
+          <div class="card">
+            <div class="metric">減少不一致</div>
+            <p>三端同版本號發版 + 禁止手打程式碼，降低「Web 有、App 沒有」的問題 與 跨團隊溝通來回。</p>
+          </div>
+        </div>
+        <div class="card" style="margin-top: 1rem">
+          <h3>可量化指標</h3>
+          <p>
+            新 method 從「三方各自開發、反覆對規格」變成「改規格 + codegen + 各端實作業務」；跨平台字串
+            bug、文件過期、sample 複製錯誤，以及為對齊而開的會議次數應明顯減少。
+          </p>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section class="slide" data-title="三層架構">
+        <div class="brand">架構</div>
+        <h2>三層模組，職責清楚、可重複組合</h2>
+        <div class="arch">
+          <div class="arch-row">
+            <div class="arch-label">共用 SDK</div>
+            <button type="button" class="arch-box has-code" data-code="sdk-shared">
+              <strong>jsbridge-sdk</strong> — 可重複使用的共用模組：共用 method／event、通訊機制、錯誤碼、三端
+              codegen（例如：掃描、導頁、使用者資訊）
+            </button>
+          </div>
+          <div class="arch-row">
+            <div class="arch-label">專案套件</div>
+            <button type="button" class="arch-box has-code" data-code="project-pkg">
+              <strong>omniguider-bridge-contracts</strong> — 專案專屬模組，依賴並 re-export
+              SDK（例如：海生館 <code>nmmba</code>）
+            </button>
+          </div>
+          <div class="arch-row">
+            <div class="arch-label">產品端</div>
+            <div class="arch-box">
+              <strong>{projectId}-front／iOS／Android</strong> —
+              只安裝套件、呼叫／註冊業務；不發布專案套件、不手動修改 generated
+            </div>
+          </div>
+        </div>
+        <p class="sub">
+          模組邊界清楚 → Web／iOS／Android 各做各的，靠規格對齊，不必反覆三方對字串。
+        </p>
+      </section>
+
+      <!-- 7 -->
+      <section class="slide" data-title="如何使用 · Web">
+        <div class="brand">使用方式 · Web</div>
+        <h2>安裝專案套件（或直接安裝 SDK）</h2>
+        <div class="two-col">
+          <div>
+            <div class="mono"># 有專案套件（建議）
+pnpm add @omniguider/nmmba-bridge-contract
+
+# 無專案套件
+pnpm add @omniguider/jsbridge-sdk</div>
+            <div class="mono" style="margin-top: 0.75rem">
+import { createBridge, BridgeMethod } from
+  "@omniguider/nmmba-bridge-contract";
+
+const bridge = createBridge({
+  debug: import.meta.env.DEV,
+  mock: import.meta.env.DEV ? {
+    "user.getInfo": () => ({ uuid: "dev" }),
+  } : false,
+});
+
+await bridge.user.getInfo();
+bridge.navigation.setHeaderTitle("背包");</div>
+          </div>
+          <div class="card">
+            <span class="tag ok">重點</span>
+            <h3>前端職責變單純</h3>
+            <ul class="list-check">
+              <li>使用產生的 method／event 名稱，不要手抄字串</li>
+              <li>本機可用 mock，不必綁定 App</li>
+              <li>只裝專案套件就會一併帶入共用 SDK</li>
+              <li>不要在前端 repo 發布專案套件</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 -->
+      <section class="slide" data-title="如何使用 · App">
+        <div class="brand">使用方式 · iOS／Android</div>
+        <h2>安裝 Host 套件，只實作業務邏輯</h2>
+        <div class="grid-2">
+          <div class="card">
+            <span class="tag">iOS · Bitbucket + SPM</span>
+            <h3>OmniguiderBridgeHost</h3>
+            <div class="mono">
+import OmniguiderBridgeKit
+// 或 NmmbaBridgeContract
+
+let bridge = OmniguiderBridgeHost()
+bridge.install(on: configuration)
+bridge.registerSend(…) { /* 業務 */ }</div>
+            <p style="margin-top: 0.75rem">Tag：<code>vX.Y.Z</code>／專案 <code>{id}-vX.Y.Z</code></p>
+          </div>
+          <div class="card">
+            <span class="tag">Android · Reposilite Maven</span>
+            <h3>只裝專案套件 AAR</h3>
+            <div class="mono">
+implementation(
+  "com.omniguider:nmmba-bridge-contract:…"
+) // api → kit
+
+host.registerSend(…) { /* 業務 */ }
+host.emitEvent(…)</div>
+            <p style="margin-top: 0.75rem">禁止用 git include，也禁止複製 generated 檔</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 -->
+      <section class="slide" data-title="如何運作">
+        <div class="brand">運作原理</div>
+        <h2>兩種方向：Method 與 Event</h2>
+        <div class="grid-2">
+          <button type="button" class="card has-code" data-code="method-web">
+            <span class="tag">Method · Web → App</span>
+            <h3>請 App 執行功能</h3>
+            <p>掃碼、關閉 WebView、設定標題／返回、取得使用者資訊…</p>
+            <div class="mono" style="margin-top: 0.75rem; text-align: left">
+// Web
+await bridge.scanner.scanQr()
+
+// iOS
+bridge.registerSend(BridgeMethod.scannerScanQr) { … }
+
+// Android
+host.registerSend(BridgeMethod.scannerScanQr) { … }</div>
+          </button>
+          <button type="button" class="card has-code" data-code="event-app">
+            <span class="tag">Event · App → Web</span>
+            <h3>App 通知 Web</h3>
+            <p>收藏更新、請 Web 開啟 dialog、App 按鈕觸發網頁介面…</p>
+            <div class="mono" style="margin-top: 0.75rem; text-align: left">
+// Web
+bridge.onEvent(BridgeEvent.favoriteUpdated, …)
+
+// iOS
+BridgeReply.event(…, name: BridgeEvent.favoriteUpdated)
+
+// Android
+host.emitEvent(BridgeEvent.favoriteUpdated, …)</div>
+          </button>
+        </div>
+        <p class="sub" style="margin-top: 1rem">
+          通訊通道：iOS <code>omniguiderBridge</code> · Android
+          <code>OmniguiderBridge</code> · 回傳
+          <code>window.onOmniguiderBridgeMessage</code>
+        </p>
+      </section>
+
+      <!-- 10 -->
+      <section class="slide" data-title="實際範例">
+        <div class="brand">實際流程</div>
+        <h2>以 QR Code 掃描為例，一顆按鈕走完可追蹤的完整流程</h2>
+        <div class="example-layout">
+          <ol class="example-steps" id="exampleSteps">
+            <li class="active" data-step="1" role="button" tabindex="0">
+              <span class="step-num">1</span>
+              <span class="step-text">Web 前端發起標準 Bridge request</span>
+            </li>
+            <li data-step="2" role="button" tabindex="0">
+              <span class="step-num">2</span>
+              <span class="step-text">iOS App 收到指定 Handler</span>
+            </li>
+            <li data-step="3" role="button" tabindex="0">
+              <span class="step-num">3</span>
+              <span class="step-text">App 開啟原生相機／掃描功能</span>
+            </li>
+            <li data-step="4" role="button" tabindex="0">
+              <span class="step-num">4</span>
+              <span class="step-text">掃描後依約定格式回傳結果</span>
+            </li>
+            <li data-step="5" role="button" tabindex="0">
+              <span class="step-num">5</span>
+              <span class="step-text">前端收到結果並更新畫面</span>
+            </li>
+          </ol>
+          <aside class="example-detail" id="exampleDetail" aria-live="polite">
+            <div class="example-detail-title" id="exampleDetailTitle"></div>
+            <p class="example-detail-desc" id="exampleDetailDesc"></p>
+            <div class="example-detail-body" id="exampleDetailBody"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section class="slide" data-title="開發流程">
+        <div class="brand">開發流程</div>
+        <h2>改規格 → codegen → 發版 → 產品端更新版號</h2>
+        <div class="flow">
+          <button type="button" class="flow-item has-code" data-code="flow-json">
+            <h3>1. 改 JSON</h3>
+            <p>catalog 或 bridge.project.json</p>
+          </button>
+          <div class="flow-arrow">→</div>
+          <button type="button" class="flow-item has-code" data-code="flow-codegen">
+            <h3>2. codegen</h3>
+            <p>產出 JSBridge 相關方法／Host 骨架</p>
+          </button>
+          <div class="flow-arrow">→</div>
+          <button type="button" class="flow-item has-code" data-code="flow-release">
+            <h3>3. release</h3>
+            <p>發版</p>
+          </button>
+          <div class="flow-arrow">→</div>
+          <button type="button" class="flow-item has-code" data-code="flow-bump">
+            <h3>4. bump</h3>
+            <p>各產品更新依賴版號</p>
+          </button>
+        </div>
+        <div class="grid-2" style="margin-top: 1rem">
+          <div class="card">
+            <h3>發布管道</h3>
+            <ul>
+              <li>Web → Verdaccio（npm）</li>
+              <li>iOS → Bitbucket tag + SPM</li>
+              <li>Android → Reposilite Maven</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>SDK 發版後</h3>
+            <ul>
+              <li>必須執行 sync-contracts</li>
+              <li>專案套件跟著鎖定 SDK 版號</li>
+              <li>通知產品端手動更新鎖定版號</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 -->
+      <section class="slide" data-title="AI 在本專案">
+        <div class="brand">AI 輔助落地</div>
+        <h2>AI 在本專案做了什麼</h2>
+        <div class="grid-3">
+          <div class="card">
+            <span class="tag">盤點</span>
+            <h3>收斂散落規格</h3>
+            <ul>
+              <li>分析 HHApp 等既有專案的 ClickUp 文件</li>
+              <li>掃描手寫 wire 與 sample</li>
+              <li>整理共用 method／event 與專案專屬 API（如 nmmba）</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag">規格</span>
+            <h3>建立 SSOT 與架構</h3>
+            <ul>
+              <li>產出 <code>bridge.catalog.json</code>／<code>bridge.project.json</code></li>
+              <li>定義 SDK、專案套件、產品端三層職責</li>
+              <li>method／event 以 JSON 為唯一來源（SSOT）</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag">產出</span>
+            <h3>codegen 與流程自動化</h3>
+            <ul>
+              <li>自動產生 Web／iOS／Android 的 method／event 名稱</li>
+              <li>產出 App 端 Bridge 初始化與註冊範本</li>
+              <li>Cursor skills（codegen／release／sync）串起發版流程</li>
+            </ul>
+          </div>
+        </div>
+        <p class="sub">
+          人工負責：業務邏輯實作、規格審核、發版決策 · AI 負責：盤點、對齊、重複性產出
+        </p>
+      </section>
+
+      <!-- 13 -->
+      <section class="slide" data-title="總結">
+        <div class="brand">總結</div>
+        <h2>規格一次定義，三端對齊、模組可重用</h2>
+        <div class="grid-2">
+          <div class="card">
+            <span class="tag ok">核心做法</span>
+            <ul class="list-check">
+              <li>規格 JSON 為 SSOT（catalog + bridge.project.json）</li>
+              <li>共用進 SDK、專案差異進專案套件</li>
+              <li>改規格 → codegen → 發版 → 產品端更新版號</li>
+              <li>Web 呼叫／訂閱，App 註冊業務，不手打 wire 字串</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag">帶來改變</span>
+            <ul>
+              <li>少三方會議、少對欄位與字串</li>
+              <li>掃碼、導頁等能力跨專案重用</li>
+              <li>三端同版本號發版，降低不一致</li>
+              <li>AI 協助盤點規格、codegen 與發版流程</li>
+            </ul>
+          </div>
+        </div>
+        <p class="sub" style="margin-bottom: 0.35rem">相關連結</p>
+        <div class="link-list">
+          <a href="https://bitbucket.org/omnig/jsbridge-sdk/src/main/" target="_blank" rel="noopener noreferrer"
+            >共用模組 JSBridge</a
+          >
+          <a
+            href="https://bitbucket.org/omnig/omniguider-bridge-contracts/src/main/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >專案 JSBridge</a
+          >
+          <a href="http://10.61.102.143:4873/" target="_blank" rel="noopener noreferrer">Verdaccio</a>
+          <a href="http://10.61.102.143:4874/#/" target="_blank" rel="noopener noreferrer">Maven</a>
+        </div>
+      </section>
+    </div>
+
+    <div class="code-backdrop" id="codeBackdrop" hidden></div>
+    <aside class="code-panel" id="codePanel" aria-hidden="true">
+      <div class="code-panel-head">
+        <div>
+          <h3 id="codeTitle">程式碼範例</h3>
+          <p id="codeDesc"></p>
+        </div>
+        <button type="button" class="code-close" id="codeClose" aria-label="關閉">×</button>
+      </div>
+      <div class="code-panel-img" id="codeImageWrap" hidden>
+        <img id="codeImage" alt="" />
+      </div>
+      <pre class="mono" id="codeBody"></pre>
+      <div class="code-blocks" id="codeBlocks" hidden></div>
+      <p class="code-panel-hint">再按 Esc 或點外側關閉</p>
+    </aside>
+
+    <div class="footer-bar">
+      <span id="slideLabel">封面</span>
+      <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+      <span class="nav-hint">
+        <button type="button" class="nav-btn" id="navPrev" aria-label="上一頁">←</button>
+        <button type="button" class="nav-btn" id="navNext" aria-label="下一頁">→</button>
+        · 點「範例」 · <span id="counter">1 / 13</span>
+      </span>
+    </div>
+
+    <script>
+      const slides = [...document.querySelectorAll(".slide")];
+      const bar = document.getElementById("bar");
+      const counter = document.getElementById("counter");
+      const slideLabel = document.getElementById("slideLabel");
+      const navPrev = document.getElementById("navPrev");
+      const navNext = document.getElementById("navNext");
+      const codeBackdrop = document.getElementById("codeBackdrop");
+      const codePanel = document.getElementById("codePanel");
+      const codeTitle = document.getElementById("codeTitle");
+      const codeDesc = document.getElementById("codeDesc");
+      const codeBody = document.getElementById("codeBody");
+      const codeBlocks = document.getElementById("codeBlocks");
+      const codeImageWrap = document.getElementById("codeImageWrap");
+      const codeImage = document.getElementById("codeImage");
+      const codeClose = document.getElementById("codeClose");
+      let i = 0;
+      let codeOpen = false;
+
+      const EXAMPLE_STEPS = {
+        1: {
+          title: "1. Web 發起 Bridge request",
+          desc: "前端呼叫 scanQr；SDK 自動帶 requestId，等待 App 回傳。",
+          blocks: [
+            {
+              label: "Web 呼叫",
+              file: "front",
+              body: `const bridge = createBridge();
+
+// 按鈕點擊後發起
+const qr = await bridge.scanner.scanQr({
+  hint: "請掃描 QR Code",
+});
+
+// qr.content / qr.format 可直接更新畫面`,
+            },
+            {
+              label: "實際送出的訊息（wire）",
+              file: "Web → App",
+              body: `{
+  "method": "scanner.scanQr",
+  "payload": { "hint": "請掃描 QR Code" },
+  "requestId": "abc-1"
+}`,
+            },
+          ],
+        },
+        2: {
+          title: "2. iOS App 收到指定 Handler",
+          desc: "App 端已註冊的 handler 對應到 scanner.scanQr。",
+          plain: `OmniguiderBridgeHost 收到 Web 送來的 method，依 BridgeMethod.scannerScanQr 找到已註冊的處理函式，開始執行業務邏輯。`,
+        },
+        3: {
+          title: "3. App 開啟原生相機／掃描功能",
+          desc: "在 handler 內呼叫原生掃描 UI，不經過 Web。",
+          plain: `iOS／Android 各自開啟相機掃描介面。使用者掃到 QR Code 或取消後，再回到 Bridge 流程準備回傳。`,
+        },
+        4: {
+          title: "4. 依約定格式回傳結果",
+          desc: "App 掃描完成後，用同一組 requestId 回傳 data 或 error。",
+          blocks: [
+            {
+              label: "成功回傳（wire）",
+              file: "App → Web",
+              body: `{
+  "type": "response",
+  "method": "scanner.scanQr",
+  "requestId": "abc-1",
+  "data": {
+    "content": "https://example.com/item/42",
+    "format": "QR"
+  }
+}`,
+            },
+            {
+              label: "錯誤回傳（例如使用者取消）",
+              file: "App → Web",
+              body: `{
+  "type": "response",
+  "method": "scanner.scanQr",
+  "requestId": "abc-1",
+  "error": {
+    "code": "USER_CANCELLED",
+    "message": "使用者關閉掃描"
+  }
+}`,
+            },
+          ],
+        },
+        5: {
+          title: "5. 前端收到結果並更新畫面",
+          desc: "await 結束，Web 用回傳資料更新 UI。",
+          plain: `SDK 把 response 對回原本的 Promise。前端拿到 qr.content／qr.format 後更新畫面；若是 error，則依錯誤碼提示使用者。`,
+        },
+      };
+
+      const exampleSteps = document.getElementById("exampleSteps");
+      const exampleDetailTitle = document.getElementById("exampleDetailTitle");
+      const exampleDetailDesc = document.getElementById("exampleDetailDesc");
+      const exampleDetailBody = document.getElementById("exampleDetailBody");
+
+      function showExampleStep(step) {
+        const data = EXAMPLE_STEPS[step];
+        if (!data || !exampleDetailBody) return;
+
+        exampleSteps?.querySelectorAll("[data-step]").forEach((el) => {
+          el.classList.toggle("active", el.dataset.step === String(step));
+        });
+
+        exampleDetailTitle.textContent = data.title;
+        exampleDetailDesc.textContent = data.desc || "";
+        exampleDetailBody.innerHTML = "";
+
+        if (data.blocks) {
+          data.blocks.forEach((block) => {
+            const wrap = document.createElement("div");
+            wrap.className = "code-block";
+
+            const label = document.createElement("div");
+            label.className = "code-block-label";
+            label.textContent = block.label || "";
+            wrap.appendChild(label);
+
+            if (block.file) {
+              const file = document.createElement("div");
+              file.className = "code-block-file";
+              file.textContent = block.file;
+              wrap.appendChild(file);
+            }
+
+            const pre = document.createElement("pre");
+            pre.className = "mono";
+            pre.textContent = block.body || "";
+            wrap.appendChild(pre);
+            exampleDetailBody.appendChild(wrap);
+          });
+        } else if (data.plain) {
+          const p = document.createElement("p");
+          p.className = "plain";
+          p.textContent = data.plain;
+          exampleDetailBody.appendChild(p);
+        }
+      }
+
+      exampleSteps?.addEventListener("click", (e) => {
+        const stepEl = e.target.closest("[data-step]");
+        if (!stepEl) return;
+        showExampleStep(stepEl.dataset.step);
+      });
+
+      exampleSteps?.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        const stepEl = e.target.closest("[data-step]");
+        if (!stepEl) return;
+        e.preventDefault();
+        showExampleStep(stepEl.dataset.step);
+      });
+
+      const CODE = {
+        "docs-scattered": {
+          title: "HHApp為例",
+          desc: "專案的 JSBridge 規範單獨在 ClickUp 文件中維護，規格散落、難重用。",
+          image: "img/cu_ document.png",
+        },
+        "web-create": {
+          title: "Web：createBridge()",
+          desc: "前端安裝套件後建立 bridge，本機可用 mock。",
+          body: `import { createBridge } from "@omniguider/nmmba-bridge-contract";
+
+const bridge = createBridge({
+  debug: import.meta.env.DEV,
+  mock: import.meta.env.DEV
+    ? {
+        "user.getInfo": () => ({ uuid: "dev", name: "Test" }),
+        "scanner.scanQr": () => ({ content: "mock", format: "QR" }),
+      }
+    : false,
+});
+
+await bridge.user.getInfo();
+bridge.navigation.setHeaderTitle("背包");
+await bridge.scanner.scanQr({ hint: "請掃描" });`,
+        },
+        "app-register": {
+          title: "App：register／emit",
+          desc: "iOS／Android 安裝 Host 後只實作業務邏輯。",
+          body: `// iOS
+import NmmbaBridgeContract
+
+let bridge = OmniguiderBridgeHost()
+bridge.install(on: configuration)
+bridge.registerSend(NmmbaBridgeMethod.uiOpenIdentify) { _ in
+  // 開啟原生 AI 辨識頁
+}
+
+// Android
+host.registerSend(NmmbaBridgeMethod.uiOpenIdentify) {
+  // 開啟原生 AI 辨識頁
+}
+host.emitEvent(NmmbaBridgeEvent.uiOpenGameGuideDialog, JSONObject())`,
+        },
+        "sdk-shared": {
+          title: "共用 SDK（jsbridge-sdk）",
+          desc: "跨專案共用的 method／event、通訊機制與錯誤碼。",
+          blocks: [
+            {
+              label: "1) 共用方法列表（範例）",
+              file: "schema/bridge.catalog.json → methods / events",
+              body: `// Method（Web → App）
+navigation.goToPage          // 導頁
+navigation.closeWebView      // 關閉 WebView
+navigation.setBackTarget     // 設定返回目標
+navigation.setHeaderTitle    // 設定標題
+user.getInfo                 // 取得使用者資訊（需回傳）
+device.getId                 // 取得裝置 ID（需回傳）
+locale.get                   // 取得語系（需回傳）
+favorite.update              // 通知收藏變更
+signup.complete              // 通知註冊完成
+scanner.scanQr               // 開啟掃碼（需回傳）
+
+// Event（App → Web）
+favorite.updated             // 收藏已在 App 端更新`,
+            },
+            {
+              label: "2) 通訊機制／runtime（傳話怎麼走）",
+              file: "通道名稱 + 訊息格式",
+              body: `// 通道（各平台掛載名稱）
+iOS      WKScriptMessageHandler → "omniguiderBridge"
+Android  JavascriptInterface    → "OmniguiderBridge"
+App→Web  全域回呼               → window.onOmniguiderBridgeMessage
+
+// Web → App（請 App 做事）
+{ method: "scanner.scanQr", payload: { hint: "請掃描" }, requestId: "abc-1" }
+
+// App → Web（有 requestId 必須回傳）
+{ type: "response", method: "scanner.scanQr", requestId: "abc-1",
+  data: { content: "…", format: "QR" } }
+
+// App → Web（主動推播 Event）
+{ type: "event", event: "favorite.updated", payload: { updated: true } }`,
+            },
+            {
+              label: "3) 錯誤碼（範例）",
+              file: "schema/bridge.catalog.json → errorCodes",
+              body: `USER_CANCELLED      // 使用者取消（例如關閉掃描）
+PERMISSION_DENIED   // 缺少權限（例如相機）
+NOT_IMPLEMENTED     // App 尚未實作該 method
+UNKNOWN             // 未分類／未預期錯誤
+
+// 回傳錯誤時大致長這樣
+{
+  type: "response",
+  method: "scanner.scanQr",
+  requestId: "…",
+  error: { code: "USER_CANCELLED", message: "…" }
+}`,
+            },
+          ],
+        },
+        "project-pkg": {
+          title: "專案套件",
+          desc: "只裝專案套件即可帶入共用 SDK。",
+          image: "img/contract_catalog.png",
+          body: `import {
+  createBridge,
+  BridgeMethod,
+  NmmbaBridgeMethod,
+  NmmbaBridgeEvent,
+} from "@omniguider/nmmba-bridge-contract";
+
+const bridge = createBridge();
+
+// 執行海生館 (nmmba) 專屬的 JSBridge 方法
+bridge.send(NmmbaBridgeMethod.uiOpenIdentify, {});
+bridge.onEvent(NmmbaBridgeEvent.uiOpenGameGuideDialog, () => {
+  // 開啟遊戲說明 dialog
+});`,
+        },
+        "method-web": {
+          title: "Method：Web → App",
+          desc: "Web 呼叫；iOS／Android 註冊並實作業務。",
+          blocks: [
+            {
+              label: "Web",
+              file: "front",
+              body: `const bridge = createBridge();
+
+// 需要回傳（invoke）
+const qr = await bridge.scanner.scanQr({ hint: "請掃描" });
+const user = await bridge.user.getInfo();
+
+// 單向（send）
+bridge.navigation.setHeaderTitle("背包");
+bridge.navigation.closeWebView();`,
+            },
+            {
+              label: "iOS",
+              file: "OmniguiderBridgeHost",
+              body: `import OmniguiderBridgeKit
+
+let bridge = OmniguiderBridgeHost()
+bridge.install(on: configuration)
+
+bridge.registerSend(BridgeMethod.navigationCloseWebView) { _ in
+  // 關閉 WebView
+}
+
+bridge.registerSend(BridgeMethod.scannerScanQr) { payload in
+  // 開啟掃描；有回傳時再 response
+}`,
+            },
+            {
+              label: "Android",
+              file: "OmniguiderBridgeHost",
+              body: `host.registerSend(BridgeMethod.navigationCloseWebView) {
+  // 關閉 WebView
+}
+
+host.registerSend(BridgeMethod.scannerScanQr) {
+  // 開啟掃描；有回傳時再 response
+}`,
+            },
+          ],
+        },
+        "event-app": {
+          title: "Event：App → Web",
+          desc: "App 主動推播；Web 用 onEvent 訂閱。",
+          blocks: [
+            {
+              label: "Web",
+              file: "front",
+              body: `import { BridgeEvent } from "@omniguider/jsbridge-sdk";
+
+bridge.onEvent(BridgeEvent.favoriteUpdated, (msg) => {
+  // 刷新收藏列表
+});
+
+bridge.onEvent(NmmbaBridgeEvent.uiOpenGameGuideDialog, () => {
+  visible.value = true; // 開 dialog，關閉只改 Web 狀態
+});`,
+            },
+            {
+              label: "iOS",
+              file: "OmniguiderBridgeHost",
+              body: `BridgeReply.event(
+  webView: webView,
+  name: BridgeEvent.favoriteUpdated,
+  payload: ["updated": true]
+)`,
+            },
+            {
+              label: "Android",
+              file: "OmniguiderBridgeHost",
+              body: `host.emitEvent(
+  BridgeEvent.favoriteUpdated,
+  JSONObject().put("updated", true)
+)`,
+            },
+          ],
+        },
+        "flow-json": {
+          title: "1. 改規格 JSON",
+          desc: "共用改 catalog；專案改 bridge.project.json。",
+          blocks: [
+            {
+              label: "寫規格",
+              file: "packages/nmmba/bridge.project.json",
+              body: `{
+  "projectId": "nmmba",
+  "methods": [
+    {
+      "id": "uiOpenIdentify",
+      "wire": "nmmba.ui.openIdentify",
+      "kind": "send",
+      "summary": "請 App 開啟原生 AI 辨識頁"
+    },
+    {
+      "id": "uiOpenBackpack",
+      "wire": "nmmba.ui.openBackpack",
+      "kind": "send",
+      "summary": "請 App 開啟背包頁"
+    },
+    {
+      "id": "atlasGetCollected",
+      "wire": "nmmba.atlas.getCollected",
+      "kind": "invoke",
+      "summary": "取得已收藏圖鑑列表"
+    },
+    …
+  ],
+  "events": [
+    {
+      "id": "uiOpenGameGuideDialog",
+      "wire": "nmmba.ui.openGameGuideDialog",
+      "summary": "請 Web 開啟遊戲說明 dialog"
+    },
+    …
+  ]
+}`,
+            },
+          ],
+        },
+        "flow-codegen": {
+          title: "2. codegen",
+          desc: "前端需求寫進 JSON 後，codegen 產出三端 method／event 名稱。",
+          blocks: [
+            {
+              label: "執行 codegen",
+              file: "terminal",
+              body: `pnpm run codegen:nmmba`,
+            },
+            {
+              label: "a) Web 產出（勿手改）",
+              file: "packages/nmmba/src/constants.generated.ts",
+              body: `export const NmmbaBridgeMethod = {
+  uiOpenIdentify: "nmmba.ui.openIdentify",
+  uiOpenBackpack: "nmmba.ui.openBackpack",
+  atlasGetCollected: "nmmba.atlas.getCollected",
+  …
+} as const;
+
+export const NmmbaBridgeEvent = {
+  uiOpenGameGuideDialog: "nmmba.ui.openGameGuideDialog",
+  …
+} as const;`,
+            },
+            {
+              label: "b) iOS 產出（勿手改）",
+              file: "packages/nmmba/ios/.../NmmbaBridgeMethod.swift",
+              body: `public enum NmmbaBridgeMethod {
+  public static let uiOpenIdentify =
+    "nmmba.ui.openIdentify"
+  public static let uiOpenBackpack =
+    "nmmba.ui.openBackpack"
+  public static let atlasGetCollected =
+    "nmmba.atlas.getCollected"
+  …
+}
+
+public enum NmmbaBridgeEvent {
+  public static let uiOpenGameGuideDialog =
+    "nmmba.ui.openGameGuideDialog"
+  …
+}`,
+            },
+            {
+              label: "c) Android 產出（勿手改）",
+              file: ".../nmmba-bridge-contract/.../NmmbaBridgeMethod.kt",
+              body: `object NmmbaBridgeMethod {
+  const val uiOpenIdentify = "nmmba.ui.openIdentify"
+  const val uiOpenBackpack = "nmmba.ui.openBackpack"
+  const val atlasGetCollected = "nmmba.atlas.getCollected"
+  …
+}
+
+object NmmbaBridgeEvent {
+  const val uiOpenGameGuideDialog =
+    "nmmba.ui.openGameGuideDialog"
+  …
+}`,
+            },
+          ],
+        },
+        "flow-release": {
+          title: "3. release（三端版本同號）",
+          desc: "Web Verdaccio／iOS tag／Android Maven 一次發。",
+          body: `# SDK
+pnpm run release          # patch
+pnpm run release -- --minor
+
+# 發版後必做
+# sync-contracts → 專案套件跟著升版
+
+# 專案套件
+pnpm run release
+# tag 例：nmmba-v0.1.2`,
+        },
+        "flow-bump": {
+          title: "4. 產品端更新版號",
+          desc: "發版不會自動更新；各產品自行 bump。",
+          body: `# Web
+pnpm add @omniguider/nmmba-bridge-contract@0.1.2
+
+# iOS（Xcode SPM）
+# Bitbucket URL + Exact tag：nmmba-v0.1.2
+
+# Android（Reposilite）
+implementation(
+  "com.omniguider:nmmba-bridge-contract:0.1.2"
+)`,
+        },
+      };
+
+      function show(n) {
+        closeCode();
+        i = Math.max(0, Math.min(slides.length - 1, n));
+        slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+        const pct = ((i + 1) / slides.length) * 100;
+        bar.style.width = pct + "%";
+        counter.textContent = i + 1 + " / " + slides.length;
+        slideLabel.textContent = slides[i].dataset.title || "";
+        navPrev.disabled = i === 0;
+        navNext.disabled = i === slides.length - 1;
+        history.replaceState(null, "", "#" + (i + 1));
+      }
+
+      function next() {
+        show(i + 1);
+      }
+      function prev() {
+        show(i - 1);
+      }
+
+      function renderBlocks(blocks) {
+        codeBlocks.innerHTML = "";
+        blocks.forEach((block) => {
+          const wrap = document.createElement("div");
+          wrap.className = "code-block";
+
+          const label = document.createElement("div");
+          label.className = "code-block-label";
+          label.textContent = block.label || "";
+          wrap.appendChild(label);
+
+          if (block.file) {
+            const file = document.createElement("div");
+            file.className = "code-block-file";
+            file.textContent = block.file;
+            wrap.appendChild(file);
+          }
+
+          const pre = document.createElement("pre");
+          pre.className = "mono";
+          pre.textContent = block.body || "";
+          wrap.appendChild(pre);
+          codeBlocks.appendChild(wrap);
+        });
+      }
+
+      function openCode(id) {
+        const snip = CODE[id];
+        if (!snip) return;
+        codeTitle.textContent = snip.title;
+        codeDesc.textContent = snip.desc || "";
+        codeBlocks.innerHTML = "";
+        codeBlocks.hidden = true;
+        codeBody.hidden = true;
+        codeBody.textContent = "";
+        codeImageWrap.hidden = true;
+        codePanel.classList.remove("image-mode");
+
+        const hasBlocks = !!(snip.blocks && snip.blocks.length);
+        const hasBody = !!snip.body;
+        if (snip.image) {
+          codeImage.src = snip.image;
+          codeImage.alt = snip.title;
+          codeImageWrap.hidden = false;
+          if (!hasBlocks && !hasBody) {
+            codePanel.classList.add("image-mode");
+          }
+        }
+        if (hasBlocks) {
+          renderBlocks(snip.blocks);
+          codeBlocks.hidden = false;
+        } else if (hasBody) {
+          codeBody.hidden = false;
+          codeBody.textContent = snip.body;
+        }
+
+        codeBackdrop.hidden = false;
+        requestAnimationFrame(() => {
+          codeBackdrop.classList.add("open");
+          codePanel.classList.add("open");
+        });
+        codePanel.setAttribute("aria-hidden", "false");
+        codeOpen = true;
+      }
+
+      function closeCode() {
+        if (!codeOpen) return;
+        codeBackdrop.classList.remove("open");
+        codePanel.classList.remove("open");
+        codePanel.setAttribute("aria-hidden", "true");
+        codeOpen = false;
+        setTimeout(() => {
+          if (!codeOpen) codeBackdrop.hidden = true;
+        }, 220);
+      }
+
+      function onCodeTrigger(el) {
+        const id = el.closest("[data-code]")?.dataset.code;
+        if (id) openCode(id);
+      }
+
+      navPrev.addEventListener("click", () => {
+        if (!codeOpen) prev();
+      });
+      navNext.addEventListener("click", () => {
+        if (!codeOpen) next();
+      });
+
+      document.addEventListener("click", (e) => {
+        const trigger = e.target.closest("[data-code]");
+        if (trigger) {
+          e.preventDefault();
+          e.stopPropagation();
+          onCodeTrigger(trigger);
+          return;
+        }
+        if (e.target === codeBackdrop || e.target === codeClose) {
+          closeCode();
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          if (codeOpen) {
+            closeCode();
+            return;
+          }
+          show(0);
+          return;
+        }
+        if (codeOpen) return;
+        if (["ArrowRight", "PageDown", " "].includes(e.key)) {
+          e.preventDefault();
+          next();
+        } else if (e.key === "Enter") {
+          if (e.target.closest?.("[data-code]")) return;
+          e.preventDefault();
+          next();
+        } else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) {
+          e.preventDefault();
+          prev();
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          show(0);
+        } else if (e.key === "End") {
+          e.preventDefault();
+          show(slides.length - 1);
+        }
+      });
+
+      // Click to change slides — disabled for presentation use / 點擊切頁：簡報時先關掉
+      // document.getElementById("deck").addEventListener("click", (e) => {
+      //   if (e.target.closest("a, button, code, pre, .mono")) return;
+      //   const mid = window.innerWidth / 2;
+      //   if (e.clientX > mid) next();
+      //   else prev();
+      // });
+
+      const hash = parseInt(location.hash.slice(1), 10);
+      show(Number.isFinite(hash) && hash >= 1 ? hash - 1 : 0);
+      showExampleStep(1);
+    </script>
+  </body>
+</html>
