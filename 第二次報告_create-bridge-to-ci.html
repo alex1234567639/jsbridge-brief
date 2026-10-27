@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>JSBridge 介面規格自助發佈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 版面：一章一屏的直式簡報，左側章節籤＋內容欄；Web 端用鈷藍、App 端用青綠，痛點用磚紅 */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --sunken: #eceef2;
+  --fg: #18202b;
+  --muted: #5b6573;
+  --line: #d9dde4;
+  --web: #2f5bd3;
+  --web-soft: #e5ecfc;
+  --app: #0f8a78;
+  --app-soft: #dcf2ee;
+  --pain: #b23a2b;
+  --pain-soft: #f8e4e0;
+  --good: #2e7d32;
+  --good-soft: #e3f1e3;
+  --term-bg: #141a22;
+  --term-fg: #d6dde7;
+  --term-dim: #7d8898;
+  --term-ok: #6fcf7f;
+  --term-q: #6fa8ff;
+  --term-warn: #f0b75a;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151b; --surface: #19202a; --sunken: #0d1116; --fg: #e6eaf0; --muted: #9aa5b4; --line: #2a3340;
+    --web: #7fa2ff; --web-soft: #1c2a4d; --app: #4fd1bb; --app-soft: #12332e;
+    --pain: #f08a7b; --pain-soft: #3a1d19; --good: #7fd18a; --good-soft: #17301a;
+    --term-bg: #0a0d12; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #19202a; --sunken: #0d1116; --fg: #e6eaf0; --muted: #9aa5b4; --line: #2a3340;
+  --web: #7fa2ff; --web-soft: #1c2a4d; --app: #4fd1bb; --app-soft: #12332e;
+  --pain: #f08a7b; --pain-soft: #3a1d19; --good: #7fd18a; --good-soft: #17301a;
+  --term-bg: #0a0d12; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 17px/1.75 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+code, .mono { font-family: var(--mono); font-size: .88em; }
+:not(pre) > code { background: var(--sunken); padding: .1em .4em; border-radius: 4px; word-break: break-all; }
+a { color: var(--web); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--web); outline-offset: 2px; }
+
+.wrap { max-width: 1040px; margin: 0 auto; }
+
+/* 頂部章節列 */
+nav.chapters {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: 10px max(16px, env(safe-area-inset-left, 0px));
+  overflow-x: auto;
+}
+nav.chapters ol { list-style: none; margin: 0 auto; padding: 0; display: flex; gap: 6px; max-width: 1040px; }
+nav.chapters a {
+  display: block; white-space: nowrap; text-decoration: none; color: var(--muted);
+  font-size: 14px; padding: 4px 12px; border-radius: 999px;
+}
+nav.chapters a:hover { background: var(--sunken); color: var(--fg); }
+nav.chapters b { font-family: var(--mono); font-weight: 600; margin-right: 6px; color: var(--fg); }
+
+section { padding-block: 72px; border-bottom: 1px solid var(--line); scroll-margin-top: 56px; }
+section:last-of-type { border-bottom: 0; }
+.eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; margin: 0 0 8px; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.3; margin: 0; }
+h1 { font-size: clamp(34px, 5.4vw, 56px); font-weight: 900; letter-spacing: -.01em; }
+h2 { font-size: clamp(26px, 3.6vw, 36px); font-weight: 900; margin-bottom: 14px; }
+h3 { font-size: 19px; font-weight: 700; }
+p { margin: 0; }
+.lead { font-size: 19px; color: var(--muted); max-width: 40em; }
+.stack { display: grid; gap: 28px; }
+.stack-sm { display: grid; gap: 12px; }
+
+/* 封面 */
+.hero { padding-block: 80px 64px; }
+.hero h1 em { font-style: normal; color: var(--web); }
+.hero .lead { margin-top: 18px; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 28px; color: var(--muted); font-size: 15px; }
+.hero-meta b { color: var(--fg); font-weight: 700; }
+
+/* 名詞卡 */
+.terms { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.term { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 8px; align-content: start; }
+.term .tag { font-size: 13px; color: var(--muted); }
+.term h3 { font-size: 22px; }
+.term p { color: var(--muted); font-size: 15.5px; line-height: 1.7; }
+
+/* 手機示意 */
+.phone-demo { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 40px; align-items: center; }
+.phone {
+  width: 280px; max-width: 100%; margin: 0 auto; border: 10px solid var(--fg); border-radius: 36px; background: var(--surface);
+  padding: 22px 14px 18px; display: grid; gap: 10px;
+}
+.phone .notch { width: 90px; height: 6px; border-radius: 3px; background: var(--line); margin: -8px auto 4px; }
+.layer { border-radius: 10px; padding: 14px; font-size: 14px; line-height: 1.5; }
+.layer b { display: block; font-size: 15px; }
+.layer.web { background: var(--web-soft); color: var(--web); border: 1.5px dashed var(--web); min-height: 150px; }
+.layer.app { background: var(--app-soft); color: var(--app); border: 1.5px solid var(--app); }
+.layer .fake-btn { margin-top: 10px; display: inline-block; background: var(--web); color: var(--surface); border-radius: 6px; padding: 4px 10px; font-size: 13px; }
+.pipe { display: flex; justify-content: space-around; font-size: 12.5px; color: var(--muted); }
+.pipe span { display: flex; align-items: center; gap: 4px; }
+.pipe .down { color: var(--web); } .pipe .up { color: var(--app); }
+.msg-list { display: grid; gap: 14px; }
+.msg { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+.msg .dir { font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 999px; align-self: start; white-space: nowrap; }
+.msg .dir.m { background: var(--web-soft); color: var(--web); }
+.msg .dir.e { background: var(--app-soft); color: var(--app); }
+.msg code { grid-column: 2; background: none; padding: 0; font-weight: 600; }
+.msg p { grid-column: 2; color: var(--muted); font-size: 15px; }
+
+/* 一份規格 → 三端程式碼 */
+.fanout { display: grid; grid-template-columns: minmax(0, 1.05fr) 56px minmax(0, 1fr); gap: 16px; align-items: center; }
+.fanout .arrow { text-align: center; color: var(--muted); font-size: 13px; line-height: 1.3; }
+.fanout .arrow svg { display: block; margin: 0 auto 6px; }
+.outs { display: grid; gap: 10px; }
+.file { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0; }
+.file header { display: flex; justify-content: space-between; gap: 8px; padding: 8px 14px; font-size: 13px; background: var(--sunken); color: var(--muted); border-bottom: 1px solid var(--line); }
+.file header b { color: var(--fg); font-family: var(--mono); font-weight: 600; font-size: 12.5px; word-break: break-all; }
+.file pre { margin: 0; padding: 14px; overflow-x: auto; font: 13px/1.6 var(--mono); }
+.file .k { color: var(--web); } .file .s { color: var(--app); } .file .c { color: var(--muted); }
+.file .add { background: var(--good-soft); display: block; margin: 0 -14px; padding: 0 14px; }
+.callout { border-left: 3px solid var(--web); background: var(--surface); padding: 14px 18px; border-radius: 0 8px 8px 0; font-size: 15.5px; }
+.callout.pain { border-color: var(--pain); }
+.callout.good { border-color: var(--good); }
+
+/* 以前的流程 */
+.flow { display: grid; gap: 0; counter-reset: step; }
+.flow li { list-style: none; display: grid; grid-template-columns: 120px 36px minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.flow .who { text-align: right; font-size: 14px; font-weight: 700; padding-top: 14px; }
+.flow .who.fe { color: var(--web); } .flow .who.mt { color: var(--pain); } .flow .who.ci { color: var(--app); }
+.flow .rail { position: relative; display: flex; justify-content: center; }
+.flow .rail::before { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.flow li:first-child .rail::before { top: 18px; } .flow li:last-child .rail::before { bottom: calc(100% - 18px); }
+.flow .dot { position: relative; margin-top: 14px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 3px solid var(--muted); }
+.flow .who.fe + .rail .dot { border-color: var(--web); }
+.flow .who.mt + .rail .dot { border-color: var(--pain); }
+.flow .who.ci + .rail .dot { border-color: var(--app); }
+.flow .body { padding: 8px 0 22px; }
+.flow .body p { color: var(--muted); font-size: 15px; }
+.flow .wait { display: inline-block; margin-top: 6px; font-size: 13px; color: var(--pain); background: var(--pain-soft); padding: 1px 10px; border-radius: 999px; }
+.flow .auto { display: inline-block; margin-top: 6px; font-size: 13px; color: var(--good); background: var(--good-soft); padding: 1px 10px; border-radius: 999px; }
+
+.why { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.why div { background: var(--pain-soft); border-radius: 10px; padding: 18px; }
+.why h3 { color: var(--pain); font-size: 17px; margin-bottom: 6px; }
+.why p { font-size: 15px; }
+
+/* 兩層 JSBridge */
+.layers { display: grid; grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr); gap: 12px; align-items: stretch; }
+.lyr { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 8px; align-content: start; }
+.lyr.shared { border-top: 3px solid var(--muted); }
+.lyr.proj { border-top: 3px solid var(--web); }
+.lyr .tag { font-size: 13px; color: var(--muted); }
+.lyr h3 { font-size: 22px; }
+.lyr p { color: var(--muted); font-size: 15.5px; }
+.lyr-plus { display: grid; place-items: center; font-size: 26px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips code { font-size: 12.5px; }
+.gaps { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; font-size: 15.5px; }
+
+/* 以前流程裡的示意 */
+.flow .body > * + * { margin-top: 8px; }
+.flow .body .file.snip, .flow .body .cmd { max-width: 640px; }
+.file.snip header { padding: 6px 12px; }
+.file.snip pre { padding: 10px 12px; font-size: 12.5px; }
+.chat { display: block; width: fit-content; max-width: 520px; background: var(--web-soft); color: var(--fg); border-radius: 14px 14px 14px 4px; padding: 10px 14px; font-size: 15px; }
+.chat .from { display: block; font-size: 12px; font-weight: 700; color: var(--web); }
+.chat code { background: var(--surface); }
+.uploads { display: grid; gap: 6px; max-width: 520px; }
+.up { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 14px; }
+.up i { font-style: normal; font-weight: 700; }
+.up.ok i { color: var(--good); }
+.up.bad { border-color: var(--pain); background: var(--pain-soft); }
+.up.bad i { color: var(--pain); }
+.split2 { display: grid; gap: 10px; max-width: 640px; }
+
+/* 時間軸 */
+.timeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.tl { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 6px; align-content: start; }
+.tl .date { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.tl h3 { font-size: 18px; }
+.tl p { font-size: 14.5px; color: var(--muted); line-height: 1.65; }
+.tl .ver { font-family: var(--mono); font-size: 12px; color: var(--web); }
+
+/* 終端機截圖 */
+.term-win { background: var(--term-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 12px 32px rgba(10, 15, 25, .18); min-width: 0; }
+.term-win .bar { display: flex; align-items: center; gap: 7px; padding: 10px 14px; background: color-mix(in srgb, var(--term-bg) 80%, #445); }
+.term-win .bar i { width: 11px; height: 11px; border-radius: 50%; background: #e0605a; }
+.term-win .bar i:nth-child(2) { background: #e6b14a; } .term-win .bar i:nth-child(3) { background: #5cc25a; }
+.term-win .bar span { margin-left: 10px; font: 12px var(--mono); color: var(--term-dim); }
+.term-win pre { margin: 0; padding: 18px 20px 22px; overflow-x: auto; font: 13.5px/1.7 var(--mono); color: var(--term-fg); }
+.t-dim { color: var(--term-dim); } .t-ok { color: var(--term-ok); } .t-q { color: var(--term-q); } .t-w { color: var(--term-warn); }
+.t-sel { color: #ffffff; background: rgba(111, 168, 255, .22); }
+.annot { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.annot ol { margin: 0; padding-left: 1.3em; display: grid; gap: 12px; font-size: 15.5px; }
+.annot ol li::marker { font-weight: 700; color: var(--web); }
+.caption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+/* 自動流程圖 */
+.pipeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; align-items: stretch; }
+.node { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-right: 26px; display: grid; gap: 4px; align-content: start; }
+.node:not(:last-child)::after {
+  content: "→"; position: absolute; right: -24px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 18px; width: 22px; text-align: center;
+}
+.node:last-child { margin-right: 0; }
+.node .who { font-size: 12.5px; font-weight: 700; }
+.node h3 { font-size: 16px; }
+.node p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+.node.fe { border-top: 3px solid var(--web); } .node.fe .who { color: var(--web); }
+.node.ci { border-top: 3px solid var(--app); } .node.ci .who { color: var(--app); }
+.dests { display: grid; gap: 6px; margin-top: 6px; }
+.dest { font-size: 13px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+.dest b { font-weight: 700; }
+
+/* 版本號 */
+.bumps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.bump { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 8px; align-content: start; }
+.bump .v { font: 600 22px var(--mono); }
+.bump .v small { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+.bump p { font-size: 15px; color: var(--muted); }
+.bump .who-act { font-size: 14px; padding: 6px 10px; border-radius: 6px; background: var(--sunken); }
+.bump.major { border-color: var(--pain); } .bump.major .v { color: var(--pain); }
+
+/* 前後對比 */
+.compare { display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.compare > div { padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: 15.5px; }
+.compare > div:nth-last-child(-n+3) { border-bottom: 0; }
+.compare .h { font-weight: 700; font-size: 14px; background: var(--sunken); }
+.compare .h.before { color: var(--pain); } .compare .h.after { color: var(--good); }
+.compare .rowh { font-weight: 700; color: var(--muted); font-size: 14.5px; }
+.compare .before-c { background: color-mix(in srgb, var(--pain-soft) 45%, var(--surface)); }
+
+/* 成果 */
+.goals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.goal { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 6px; }
+.goal h3 { font-size: 18px; }
+.goal p { font-size: 15px; color: var(--muted); }
+
+/* 角色 */
+.roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.role { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 10px; align-content: start; }
+.role h3 { font-size: 18px; }
+.role.fe h3 { color: var(--web); } .role.app h3 { color: var(--app); }
+.role ul { margin: 0; padding-left: 1.1em; font-size: 15px; display: grid; gap: 6px; }
+.cmd { font: 13px/1.6 var(--mono); background: var(--term-bg); color: var(--term-fg); border-radius: 6px; padding: 8px 12px; overflow-x: auto; white-space: pre; }
+.rules { display: grid; gap: 10px; margin: 0; padding-left: 1.3em; font-size: 15.5px; }
+
+footer { padding-block: 36px 56px; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 860px) {
+  .terms, .why, .bumps, .roles { grid-template-columns: minmax(0, 1fr); }
+  .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .phone-demo, .annot, .goals { grid-template-columns: minmax(0, 1fr); }
+  .fanout, .layers { grid-template-columns: minmax(0, 1fr); }
+  .lyr-plus { font-size: 20px; }
+  .fanout .arrow svg { transform: rotate(90deg); }
+  .pipeline { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  .node { margin-right: 0; }
+  .node:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -26px; transform: translateX(-50%); }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  section { padding-block: 52px; }
+  .timeline { grid-template-columns: minmax(0, 1fr); }
+  .flow li { grid-template-columns: 64px 28px minmax(0, 1fr); gap: 8px; }
+  .flow .who { font-size: 12.5px; }
+  .compare { grid-template-columns: minmax(0, 1fr); }
+  .compare .h:first-child { display: none; }
+  .compare .h { display: none; }
+  .compare .rowh { background: var(--sunken); }
+  .compare .before-c::before { content: "以前："; font-weight: 700; color: var(--pain); }
+  .compare .after-c::before { content: "現在："; font-weight: 700; color: var(--good); }
+  .compare > div:nth-last-child(-n+3) { border-bottom: 1px solid var(--line); }
+  .compare > div:last-child { border-bottom: 0; }
+}
+</style>
+</head>
+<body>
+
+<nav class="chapters" aria-label="章節">
+  <ol>
+    <li><a href="#terms"><b>1</b>故事的開始</a></li>
+    <li><a href="#before"><b>2</b>以前怎麼做</a></li>
+    <li><a href="#journey"><b>3</b>做了哪些事</a></li>
+    <li><a href="#now"><b>4</b>現在怎麼做</a></li>
+    <li><a href="#diff"><b>5</b>差在哪裡</a></li>
+    <li><a href="#result"><b>6</b>最後達成什麼</a></li>
+    <li><a href="#howto"><b>7</b>各角色怎麼用</a></li>
+  </ol>
+</nav>
+
+<main class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">內部分享 · omniguider-bridge-contracts</p>
+  <h1>網頁和 App 之間的「指令清單」，<br><em>前端自己就能新增、發佈</em></h1>
+  <p class="lead">過去新增一個網頁呼叫 App 的指令，要找專人、等專人的電腦、手動上傳三個地方。這次把整段流程做成一個指令加自動化部署，前端改完檔案下一個指令就完成。</p>
+</header>
+
+<!-- 1 -->
+<section id="terms" class="stack">
+  <div>
+    <p class="eyebrow">第 1 章 · 故事的開始</p>
+    <h2>JSBridge 原本分成兩層，只有新專案裝得到</h2>
+    <p class="lead">網頁和 App 之間傳話用的名稱，分成「大家共用的」和「某個專案自己才有的」兩層，放在兩個不同的儲存庫。</p>
+  </div>
+
+  <div class="layers">
+    <div class="lyr shared">
+      <span class="tag">共用 · <code>jsbridge-sdk</code></span>
+      <h3>JSBridge SDK</h3>
+      <p>每個專案都會用到的能力：掃描、導航、使用者資訊，以及傳話用的底層程式。</p>
+      <div class="chips"><code>scanner.*</code><code>navigation.*</code><code>user.*</code></div>
+    </div>
+    <div class="lyr-plus" aria-hidden="true">＋</div>
+    <div class="lyr proj">
+      <span class="tag">專案專屬 · <code>omniguider-bridge-contracts</code></span>
+      <h3>專案 JSBridge</h3>
+      <p>只有這個專案才需要的指令，例如海生館的「開啟 AI 辨識」。每個專案一個套件，裡面已經包含共用 SDK。</p>
+      <div class="chips"><code>nmmba.ui.openIdentify</code><code>nmmba.ui.openGameGuideDialog</code></div>
+    </div>
+  </div>
+
+  <div class="annot">
+    <div>
+      <div class="term-win" role="img" aria-label="終端機畫面示意：用 create-front 建立新前端專案時選擇安裝專案 JSBridge">
+        <div class="bar"><i></i><i></i><i></i><span>create-front — zsh</span></div>
+<pre><span class="t-dim">$</span> pnpm create @omniguider/front
+<span class="t-q">?</span> 專案名稱 <span class="t-dim">›</span> nmmba-front
+<span class="t-q">?</span> 要安裝 JSBridge 嗎？
+  不需要
+  只裝共用 SDK
+<span class="t-sel">❯ 安裝專案 JSBridge（contract）</span>
+
+<span class="t-ok">✓</span> 已安裝 @omniguider/nmmba-bridge-contract
+<span class="t-ok">✓</span> 已產生 src/bridge/appBridge.ts</pre>
+      </div>
+      <p class="caption">示意畫面：問題文字為簡化後的示意，對應 create-front 的 <code>--bridge contract</code> 選項。</p>
+    </div>
+    <div class="stack-sm">
+      <h3>原本唯一的安裝入口：建立前端專案時順便裝</h3>
+      <p>用 create-front 開新專案時選「安裝專案 JSBridge」，就會自動裝好套件、產生初始化檔。</p>
+      <div class="callout pain"><b>缺的那一塊：沒辦法「單獨」安裝專案 JSBridge。</b></div>
+      <ul class="gaps">
+        <li><b>已經存在的前端專案</b>：當初不是用 create-front 建的，或建立時選了「不需要」。</li>
+        <li><b>專案還沒有規格</b>：要先有人到規格儲存庫幫它建好。</li>
+        <li><b>規格要加新指令</b>：只能找儲存庫負責人改、發版。</li>
+      </ul>
+      <p>這次的工作就是補上這一塊，再一路做到自動部署。</p>
+    </div>
+  </div>
+
+  <div class="terms">
+    <div class="term">
+      <span class="tag">程式和工具畫面上寫作「契約」</span>
+      <h3>介面規格</h3>
+      <p>網頁和 App 事先講好的「指令清單」：有哪些 method、哪些 event、名稱是什麼。每個專案一份，就是一個 JSON 檔。</p>
+    </div>
+    <div class="term">
+      <span class="tag">以前唯一能發佈的人</span>
+      <h3>儲存庫負責人</h3>
+      <p>管理 <code>omniguider-bridge-contracts</code> 這個儲存庫的人（目前是 Ryan）。以前只有他熟悉流程，電腦上也只有他裝好發佈環境。</p>
+    </div>
+    <div class="term">
+      <span class="tag">放在公司內網</span>
+      <h3>套件伺服器</h3>
+      <p>規格做成套件後要放的地方：網頁用 Verdaccio、Android 用 Reposilite、iOS 直接從 Bitbucket 的版本標籤（tag）下載。</p>
+    </div>
+  </div>
+
+  <div class="stack-sm">
+    <h3>一份規格，自動產生三端程式碼</h3>
+    <p class="lead" style="font-size:16px">規格只寫一次。工具會產生 TypeScript、Swift、Kotlin 三份常數，三端都引用常數，不用自己打字串，也就不會打錯。</p>
+  </div>
+  <div class="fanout">
+    <div class="file">
+      <header><b>bridge.project.json</b><span>規格本體</span></header>
+<pre>{
+  <span class="k">"projectId"</span>: <span class="s">"nmmba"</span>,
+  <span class="k">"methods"</span>: [{
+    <span class="k">"id"</span>: <span class="s">"uiOpenIdentify"</span>,
+    <span class="k">"wire"</span>: <span class="s">"nmmba.ui.openIdentify"</span>,
+    <span class="k">"kind"</span>: <span class="s">"send"</span>,
+    <span class="k">"summary"</span>: <span class="s">"請 App 開啟原生 AI 辨識頁"</span>
+  }],
+  <span class="k">"events"</span>: [{
+    <span class="k">"id"</span>: <span class="s">"uiOpenGameGuideDialog"</span>,
+    <span class="k">"wire"</span>: <span class="s">"nmmba.ui.openGameGuideDialog"</span>
+  }]
+}</pre>
+    </div>
+    <div class="arrow" aria-hidden="true">
+      <svg width="40" height="24" viewBox="0 0 40 24"><path d="M2 12h32m-8-8 8 8-8 8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      自動產生
+    </div>
+    <div class="outs">
+      <div class="file">
+        <header><b>constants.generated.ts</b><span style="color:var(--web)">網頁</span></header>
+<pre><span class="k">export const</span> NmmbaBridgeMethod = {
+  uiOpenIdentify: <span class="s">"nmmba.ui.openIdentify"</span>,
+}</pre>
+      </div>
+      <div class="file">
+        <header><b>NmmbaBridge.generated.swift</b><span style="color:var(--app)">iOS</span></header>
+<pre><span class="k">public static let</span> uiOpenIdentify =
+  <span class="s">"nmmba.ui.openIdentify"</span></pre>
+      </div>
+      <div class="file">
+        <header><b>NmmbaBridge.generated.kt</b><span style="color:var(--app)">Android</span></header>
+<pre><span class="k">const val</span> uiOpenIdentify =
+  <span class="s">"nmmba.ui.openIdentify"</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="before" class="stack">
+  <div>
+    <p class="eyebrow">第 2 章 · 以前怎麼做</p>
+    <h2>以前前端想加一個指令，要經過這些步驟</h2>
+    <p class="lead">以「網頁要多一個按鈕，請 App 打開地圖」為例：</p>
+  </div>
+
+  <ol class="flow">
+    <li><div class="who fe">前端</div><div class="rail"><span class="dot"></span></div>
+      <div class="body"><h3>傳訊息給負責人</h3><p>說明要加什麼名稱、做什麼用。</p>
+        <div class="chat"><span class="from">前端</span>可以幫 nmmba 加一個 <code>nmmba.ui.openMap</code> 嗎？要請 App 開地圖頁 🙏</div>
+        <span class="wait">等負責人有空</span></div></li>
+    <li><div class="who mt">負責人</div><div class="rail"><span class="dot"></span></div>
+      <div class="body"><h3>在規格儲存庫裡手動修改 JSON</h3><p>打開 contracts 儲存庫加一段，並自己判斷這次算哪一種修改。</p>
+        <div class="file snip"><header><b>omniguider-bridge-contracts / packages/nmmba/bridge.project.json</b></header>
+<pre><span class="add">    { <span class="k">"id"</span>: <span class="s">"uiOpenMap"</span>, <span class="k">"wire"</span>: <span class="s">"nmmba.ui.openMap"</span>, <span class="k">"kind"</span>: <span class="s">"send"</span> },</span><span class="c">    // 這算新增還是不相容修改？版本號要跳 minor 還是 major？→ 靠人判斷</span></pre></div></div></li>
+    <li><div class="who mt">負責人</div><div class="rail"><span class="dot"></span></div>
+      <div class="body"><h3>產生三端程式碼、檢查、提交</h3><p>每一步都是分開手動下的指令。</p>
+        <div class="cmd">pnpm run codegen:nmmba
+pnpm run check
+git commit -am "feat(nmmba): add uiOpenMap"</div></div></li>
+    <li><div class="who mt">負責人</div><div class="rail"><span class="dot"></span></div>
+      <div class="body"><h3>在自己電腦上發版、建置 Android 套件</h3><p>發版指令會在本機建置 Android 套件，需要 JDK 17 和 Android SDK。換一台沒裝的電腦，就會停在這裡：</p>
+        <div class="cmd">pnpm run release -- nmmba --minor
+<span class="t-w">ERROR: JAVA_HOME is not set and no 'java' command
+could be found in your PATH.</span></div>
+        <span class="wait">只有負責人的電腦可以</span></div></li>
+    <li><div class="who mt">負責人</div><div class="rail"><span class="dot"></span></div>
+      <div class="body"><h3>從本機依序上傳三個地方</h3><p>一個接一個傳，中間任何一個失敗，要自己判斷哪些已經傳上去、哪些要補。</p>
+        <div class="uploads">
+          <div class="up ok"><b>iOS</b><span>推送 tag <code>nmmba-v0.2.0</code></span><i>✓</i></div>
+          <div class="up ok"><b>網頁</b><span>上傳 Verdaccio</span><i>✓</i></div>
+          <div class="up bad"><b>Android</b><span>上傳 Reposilite</span><i>✗ 網路中斷</i></div>
+        </div>
+        <p class="caption">舉例：如果傳到第三個失敗，前兩個已經發出去了，只能手動補傳最後一個。</p></div></li>
+    <li><div class="who fe">前端</div><div class="rail"><span class="dot"></span></div>
+      <div class="body"><h3>收到通知後手動安裝新版</h3><p>自己設定套件來源、改版本號、重新安裝。</p>
+        <div class="split2">
+          <div class="file snip"><header><b>.npmrc</b></header>
+<pre>@omniguider:registry=http://10.61.102.143:4873/</pre></div>
+          <div class="file snip"><header><b>package.json</b></header>
+<pre><span class="k">"@omniguider/nmmba-bridge-contract"</span>: <span class="s">"0.2.0"</span></pre></div>
+        </div>
+        <span class="wait">再等一次</span></div></li>
+  </ol>
+
+  <div class="why">
+    <div><h3>為什麼要找人？</h3><p>當時只有給負責人用的指令稿，沒有給前端用的工具；流程也只有負責人清楚。</p></div>
+    <div><h3>為什麼要手動？</h3><p>改 JSON、產生程式碼、檢查、提交、發版是分開的指令，沒有串起來。新增一個專案甚至要手動複製整個資料夾，很容易漏改設定。</p></div>
+    <div><h3>為什麼綁電腦？</h3><p>Android 套件必須建置，建置需要數 GB 的開發環境，只有負責人的電腦裝好了。</p></div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="journey" class="stack">
+  <div>
+    <p class="eyebrow">第 3 章 · 做了哪些事</p>
+    <h2>分四步，把「找人」和「手動」拿掉</h2>
+  </div>
+  <div class="timeline">
+    <div class="tl">
+      <h3>做一個安裝工具</h3>
+      <p>前端下一個指令 <code>pnpm create @omniguider/bridge</code>，選專案、選版本就裝好。新增專案也改用指令產生，不再手動複製。</p>
+    </div>
+    <div class="tl">
+      <h3>前端自己改、自己發佈</h3>
+      <p>規格檔放進前端專案的 <code>bridge/</code> 資料夾。改完後工具自動比對差異、決定版本號、完成發佈。</p>
+    </div>
+    <div class="tl">
+      <h3>交給 CI 自動部署</h3>
+      <p>建置和上傳移到 Bitbucket Pipelines。前端電腦只要推一個版本標籤，不用再裝 Android 開發環境。用測試專案從頭到尾驗證過一次。</p>
+    </div>
+    <div class="tl">
+      <h3>同仁實際使用</h3>
+      <p>同仁實際用工具建立新專案並發佈，過程不用負責人介入。之後依回饋補上 npm／yarn 專案的支援。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="now" class="stack">
+  <div>
+    <p class="eyebrow">第 4 章 · 現在怎麼做</p>
+    <h2>改一個檔案，下一個指令</h2>
+    <p class="lead">同樣是「請 App 打開地圖」，現在前端只需要兩步。</p>
+  </div>
+
+  <div class="stack-sm">
+    <h3>步驟一：在自己的前端專案裡加一段</h3>
+    <div class="file">
+      <header><b>nmmba-front / bridge/bridge.project.json</b><span>綠色是新增的部分</span></header>
+<pre>  <span class="k">"methods"</span>: [
+    { <span class="k">"id"</span>: <span class="s">"uiOpenIdentify"</span>, <span class="k">"wire"</span>: <span class="s">"nmmba.ui.openIdentify"</span>, <span class="k">"kind"</span>: <span class="s">"send"</span>, ... },
+<span class="add">    { <span class="k">"id"</span>: <span class="s">"uiOpenMap"</span>, <span class="k">"wire"</span>: <span class="s">"nmmba.ui.openMap"</span>, <span class="k">"kind"</span>: <span class="s">"send"</span>,
+      <span class="k">"summary"</span>: <span class="s">"請 App 開啟原生地圖頁"</span> }</span>  ],</pre>
+    </div>
+  </div>
+
+  <div class="stack-sm">
+    <h3>步驟二：執行 <code>pnpm bridge:publish</code></h3>
+    <div class="annot">
+      <div>
+        <div class="term-win" role="img" aria-label="終端機畫面示意：執行 pnpm bridge:publish 的過程">
+          <div class="bar"><i></i><i></i><i></i><span>nmmba-front — zsh</span></div>
+<pre><span class="t-dim">$</span> pnpm bridge:publish
+omniguider create-bridge 0.6.4 — Web 專案安裝／建立／發佈 JSBridge 契約
+
+<span class="t-q">?</span> bridge/bridge.project.json 有修改尚未發佈
+<span class="t-sel">❯ ⇪ 發佈契約修改（nmmba 0.1.2 → 0.2.0，minor）</span>
+  略過，繼續安裝／升版
+
+發佈契約修改 @omniguider/nmmba-bridge-contract：0.1.2 → 0.2.0（minor）
+<span class="t-ok">  + method uiOpenMap（nmmba.ui.openMap）</span>
+<span class="t-q">?</span> 確定三端發佈 0.2.0？ <span class="t-dim">› Yes</span>
+
+→ 檢查發佈環境
+<span class="t-ok">✓</span> git／pnpm／Bitbucket SSH
+<span class="t-ok">✓</span> CI 發佈：本機只 commit＋push tag，Verdaccio／Reposilite 由 Bitbucket Pipelines 發佈
+→ 產生程式碼、檢查、提交，推送 tag nmmba-v0.2.0
+→ 等待 Bitbucket Pipelines 發佈 nmmba-v0.2.0
+<span class="t-ok">✓</span> Pipelines 已發佈 Verdaccio＋Reposilite
+<span class="t-ok">✓</span> 已三端發佈 @omniguider/nmmba-bridge-contract@0.2.0（tag nmmba-v0.2.0）
+
+完成。
+請通知 App 端升版：iOS SPM tag nmmba-v0.2.0／Android com.omniguider:nmmba-bridge-contract:0.2.0</pre>
+        </div>
+        <p class="caption">示意畫面：文字取自工具實際輸出，<code>uiOpenMap</code> 是舉例用的指令，部分中間過程有省略。</p>
+      </div>
+      <ol>
+        <li><b>自動發現有修改</b>：工具拿你的檔案和目前安裝的版本比對，列出新增了什麼。</li>
+        <li><b>自動決定版本號</b>：這次只有新增，所以從 0.1.2 升到 0.2.0。</li>
+        <li><b>先檢查再動手</b>：確認網路、權限都沒問題才開始，避免做到一半失敗。</li>
+        <li><b>交給 CI</b>：本機只推一個版本標籤，建置和上傳由 Bitbucket 完成。</li>
+        <li><b>自動裝回前端</b>：發佈完成後，前端專案直接升到新版，最後提醒你通知 App。</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="stack-sm">
+    <h3>按下確認之後，背後發生了什麼</h3>
+    <div class="pipeline">
+      <div class="node fe"><span class="who">前端電腦</span><h3>檢查、產生程式碼</h3><p>在暫存資料夾下載規格儲存庫，寫入你的修改並產生三端程式碼，完成後刪除。</p></div>
+      <div class="node fe"><span class="who">前端電腦 → Bitbucket</span><h3>推送版本標籤</h3><p>推送 <code>nmmba-v0.2.0</code>。iOS 從這一刻起就能用這個版本。</p></div>
+      <div class="node ci"><span class="who">Bitbucket Pipelines</span><h3>自動建置</h3><p>偵測到新標籤就開始執行：確認版本號一致，檢查並建置 Android 套件。</p></div>
+      <div class="node ci"><span class="who">Bitbucket Pipelines</span><h3>上傳兩個伺服器</h3>
+        <div class="dests">
+          <div class="dest"><b>網頁</b><span>Verdaccio</span></div>
+          <div class="dest"><b>Android</b><span>Reposilite</span></div>
+          <div class="dest"><b>iOS</b><span>Bitbucket tag</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="callout good">建置失敗就什麼都不上傳；某一端上傳失敗可以重跑，已上傳成功的那一端會自動跳過。</div>
+  </div>
+
+  <div class="stack-sm">
+    <h3>版本號怎麼決定</h3>
+    <div class="bumps">
+      <div class="bump">
+        <div class="v">0.1.2 → 0.1.3<small>patch</small></div>
+        <p>只改了說明文字。</p>
+        <div class="who-act">App 不用改程式</div>
+      </div>
+      <div class="bump">
+        <div class="v">0.1.2 → 0.2.0<small>minor</small></div>
+        <p>新增了 method 或 event，原有的都沒動。</p>
+        <div class="who-act">App 升版後實作新的指令</div>
+      </div>
+      <div class="bump major">
+        <div class="v">0.1.2 → 1.0.0<small>major</small></div>
+        <p>刪除或改名了既有的指令，舊版 App 會對不上。</p>
+        <div class="who-act">工具會要求你輸入專案名稱確認，請先和 App 端講好</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="diff" class="stack">
+  <div>
+    <p class="eyebrow">第 5 章 · 差在哪裡</p>
+    <h2>以前和現在對照</h2>
+  </div>
+  <div class="compare">
+    <div class="h"></div><div class="h before">以前</div><div class="h after">現在</div>
+
+    <div class="rowh">誰來改</div>
+    <div class="before-c">前端提需求，負責人修改</div>
+    <div class="after-c">前端在自己的專案裡直接改</div>
+
+    <div class="rowh">要等誰</div>
+    <div class="before-c">等負責人有空，前後至少兩次來回</div>
+    <div class="after-c">不用等人，等 CI 跑完即可</div>
+
+    <div class="rowh">電腦要裝什麼</div>
+    <div class="before-c">JDK 17、Android SDK（只有負責人的電腦有）</div>
+    <div class="after-c">Node 和 pnpm，加上 Bitbucket 推送權限</div>
+
+    <div class="rowh">版本號</div>
+    <div class="before-c">人工判斷</div>
+    <div class="after-c">依修改內容自動判斷，不相容修改要再確認</div>
+
+    <div class="rowh">上傳三端</div>
+    <div class="before-c">手動上傳三個地方</div>
+    <div class="after-c">推一個標籤，Pipelines 自動完成</div>
+
+    <div class="rowh">出錯時</div>
+    <div class="before-c">自己判斷哪一端沒上傳成功</div>
+    <div class="after-c">重跑 Pipeline，成功的那一端自動跳過</div>
+
+    <div class="rowh">新增專案</div>
+    <div class="before-c">複製現有資料夾，手動改設定</div>
+    <div class="after-c">工具選「＋ 建立新的專案契約」</div>
+
+    <div class="rowh">前端安裝</div>
+    <div class="before-c">自己設定套件來源、填版本號</div>
+    <div class="after-c">一個指令，選專案和版本</div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="result" class="stack">
+  <div>
+    <p class="eyebrow">第 6 章 · 最後達成什麼</p>
+    <h2>誰需要新指令，誰就能自己完成</h2>
+    <p class="lead">目的不是多一個工具，而是讓介面規格的修改不再卡在特定的人或特定的電腦上。</p>
+  </div>
+  <div class="goals">
+    <div class="goal"><h3>不用找人</h3><p>前端是最清楚需要什麼指令的人，現在可以自己改、自己發佈。</p></div>
+    <div class="goal"><h3>不綁電腦</h3><p>建置交給 CI，任何有推送權限的電腦都能發佈。</p></div>
+    <div class="goal"><h3>不會對不上</h3><p>三端用同一個版本號、同一份規格產生的程式碼，名稱不會打錯。</p></div>
+    <div class="goal"><h3>改壞會被擋下</h3><p>工具會擋下重複名稱、過舊的版本，以及未確認的不相容修改。</p></div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="howto" class="stack">
+  <div>
+    <p class="eyebrow">第 7 章 · 各角色怎麼用</p>
+    <h2>你只需要知道自己這一塊</h2>
+  </div>
+  <div class="roles">
+    <div class="role fe">
+      <h3>前端</h3>
+      <ul>
+        <li>第一次（專案還沒裝過）：</li>
+      </ul>
+      <div class="cmd">pnpm create @omniguider/bridge</div>
+      <ul>
+        <li>之後改 <code>bridge/bridge.project.json</code>，發佈：</li>
+      </ul>
+      <div class="cmd">pnpm bridge:publish</div>
+      <ul>
+        <li>只想升版或切換版本：</li>
+      </ul>
+      <div class="cmd">pnpm bridge</div>
+      <ul><li>需連上公司內網／VPN。</li></ul>
+    </div>
+    <div class="role app">
+      <h3>App（iOS／Android）</h3>
+      <ul>
+        <li>不用安裝工具，也不改規格。</li>
+        <li>收到前端通知後升版本號：</li>
+        <li>iOS：SPM 指定 tag <code>nmmba-v0.2.0</code></li>
+        <li>Android：<code>com.omniguider:nmmba-bridge-contract:0.2.0</code></li>
+        <li>實作新指令要做的事。</li>
+      </ul>
+    </div>
+    <div class="role">
+      <h3>請不要這樣做</h3>
+      <ol class="rules">
+        <li>不要手改 <code>*.generated.*</code> 檔案，下次產生會被蓋掉。</li>
+        <li>不要自己打 <code>"nmmba.ui.xxx"</code> 字串，用產生的常數。</li>
+        <li>不要手動建立或刪除版本標籤，推標籤就等於發佈。</li>
+        <li>Pipeline 失敗時重跑它，不要改回手動上傳。</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  詳細文件：儲存庫內的 <code>AGENTS.md</code>、<code>docs/CI.md</code>、<code>tools/create-bridge/README.md</code>
+</footer>
+
+</body>
+</html>
