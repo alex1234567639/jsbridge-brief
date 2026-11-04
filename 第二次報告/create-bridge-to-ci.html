@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
-<title>JSBridge 介面規格自助發佈</title>
+<title>JSBridge 自助發佈與 CI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -93,6 +93,16 @@ h2 { font-size: clamp(26px, 3.6vw, 36px); font-weight: 900; margin-bottom: 14px;
 h3 { font-size: 19px; font-weight: 700; }
 p { margin: 0; }
 .lead { font-size: 19px; color: var(--muted); max-width: 40em; }
+
+/* 以前／現在做法標籤 */
+.era { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; padding: 3px 14px; border-radius: 999px; margin-bottom: 12px; }
+.era::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.era.before { color: var(--pain); background: var(--pain-soft); }
+.era.after { color: var(--good); background: var(--good-soft); }
+section.era-before { box-shadow: inset 4px 0 0 var(--pain); padding-left: 20px; }
+section.era-after { box-shadow: inset 4px 0 0 var(--good); padding-left: 20px; }
+nav.chapters a.era-before { color: var(--pain); }
+nav.chapters a.era-after { color: var(--good); }
 .stack { display: grid; gap: 28px; }
 .stack-sm { display: grid; gap: 12px; }
 
@@ -305,10 +315,10 @@ footer { padding-block: 36px 56px; color: var(--muted); font-size: 14px; }
 
 <nav class="chapters" aria-label="章節">
   <ol>
-    <li><a href="#terms"><b>1</b>故事的開始</a></li>
-    <li><a href="#before"><b>2</b>以前怎麼做</a></li>
+    <li><a href="#terms"><b>1</b>前情提要</a></li>
+    <li><a href="#before" class="era-before"><b>2</b>以前怎麼做</a></li>
     <li><a href="#journey"><b>3</b>做了哪些事</a></li>
-    <li><a href="#now"><b>4</b>現在怎麼做</a></li>
+    <li><a href="#now" class="era-after"><b>4</b>現在怎麼做</a></li>
     <li><a href="#diff"><b>5</b>差在哪裡</a></li>
     <li><a href="#result"><b>6</b>最後達成什麼</a></li>
     <li><a href="#howto"><b>7</b>各角色怎麼用</a></li>
@@ -318,24 +328,25 @@ footer { padding-block: 36px 56px; color: var(--muted); font-size: 14px; }
 <main class="wrap">
 
 <header class="hero">
-  <p class="eyebrow">內部分享 · omniguider-bridge-contracts</p>
-  <h1>網頁和 App 之間的「指令清單」，<br><em>前端自己就能新增、發佈</em></h1>
-  <p class="lead">過去新增一個網頁呼叫 App 的指令，要找專人、等專人的電腦、手動上傳三個地方。這次把整段流程做成一個指令加自動化部署，前端改完檔案下一個指令就完成。</p>
+  <p class="eyebrow">內部分享 · create-bridge 工具 × Bitbucket Pipelines</p>
+  <h1>專案 JSBridge 規格<br><em>改由前端自助發佈、CI 自動部署</em></h1>
+  <p class="lead">過去要在專案 JSBridge 新增一個網頁呼叫 App 的指令，要找專人、等專人的電腦、手動上傳三個地方。這次把整段流程做成一個指令加自動化部署，前端改完檔案下一個指令就完成。</p>
 </header>
 
 <!-- 1 -->
 <section id="terms" class="stack">
   <div>
-    <p class="eyebrow">第 1 章 · 故事的開始</p>
+    <p class="eyebrow">第 1 章 · 前情提要</p>
     <h2>JSBridge 原本分成兩層，只有新專案裝得到</h2>
     <p class="lead">網頁和 App 之間傳話用的名稱，分成「大家共用的」和「某個專案自己才有的」兩層，放在兩個不同的儲存庫。</p>
   </div>
 
-  <div class="layers">
+  <div>
+    <div class="layers">
     <div class="lyr shared">
       <span class="tag">共用 · <code>jsbridge-sdk</code></span>
       <h3>JSBridge SDK</h3>
-      <p>每個專案都會用到的能力：掃描、導航、使用者資訊，以及傳話用的底層程式。</p>
+      <p>每個專案都會用到的方法：掃描、導航、使用者資訊，以及傳話用的底層程式。</p>
       <div class="chips"><code>scanner.*</code><code>navigation.*</code><code>user.*</code></div>
     </div>
     <div class="lyr-plus" aria-hidden="true">＋</div>
@@ -346,34 +357,6 @@ footer { padding-block: 36px 56px; color: var(--muted); font-size: 14px; }
       <div class="chips"><code>nmmba.ui.openIdentify</code><code>nmmba.ui.openGameGuideDialog</code></div>
     </div>
   </div>
-
-  <div class="annot">
-    <div>
-      <div class="term-win" role="img" aria-label="終端機畫面示意：用 create-front 建立新前端專案時選擇安裝專案 JSBridge">
-        <div class="bar"><i></i><i></i><i></i><span>create-front — zsh</span></div>
-<pre><span class="t-dim">$</span> pnpm create @omniguider/front
-<span class="t-q">?</span> 專案名稱 <span class="t-dim">›</span> nmmba-front
-<span class="t-q">?</span> 要安裝 JSBridge 嗎？
-  不需要
-  只裝共用 SDK
-<span class="t-sel">❯ 安裝專案 JSBridge（contract）</span>
-
-<span class="t-ok">✓</span> 已安裝 @omniguider/nmmba-bridge-contract
-<span class="t-ok">✓</span> 已產生 src/bridge/appBridge.ts</pre>
-      </div>
-      <p class="caption">示意畫面：問題文字為簡化後的示意，對應 create-front 的 <code>--bridge contract</code> 選項。</p>
-    </div>
-    <div class="stack-sm">
-      <h3>原本唯一的安裝入口：建立前端專案時順便裝</h3>
-      <p>用 create-front 開新專案時選「安裝專案 JSBridge」，就會自動裝好套件、產生初始化檔。</p>
-      <div class="callout pain"><b>缺的那一塊：沒辦法「單獨」安裝專案 JSBridge。</b></div>
-      <ul class="gaps">
-        <li><b>已經存在的前端專案</b>：當初不是用 create-front 建的，或建立時選了「不需要」。</li>
-        <li><b>專案還沒有規格</b>：要先有人到規格儲存庫幫它建好。</li>
-        <li><b>規格要加新指令</b>：只能找儲存庫負責人改、發版。</li>
-      </ul>
-      <p>這次的工作就是補上這一塊，再一路做到自動部署。</p>
-    </div>
   </div>
 
   <div class="terms">
@@ -385,7 +368,7 @@ footer { padding-block: 36px 56px; color: var(--muted); font-size: 14px; }
     <div class="term">
       <span class="tag">以前唯一能發佈的人</span>
       <h3>儲存庫負責人</h3>
-      <p>管理 <code>omniguider-bridge-contracts</code> 這個儲存庫的人（目前是 Ryan）。以前只有他熟悉流程，電腦上也只有他裝好發佈環境。</p>
+      <p>管理 <code>omniguider-bridge-contracts</code> 這個儲存庫的人（目前是 Ryan），電腦上也只有他裝好發佈環境。</p>
     </div>
     <div class="term">
       <span class="tag">放在公司內網</span>
@@ -438,12 +421,42 @@ footer { padding-block: 36px 56px; color: var(--muted); font-size: 14px; }
       </div>
     </div>
   </div>
+
+  <div class="annot">
+    <div>
+      <div class="term-win" role="img" aria-label="終端機畫面示意：用 create-front 建立新前端專案時選擇安裝專案 JSBridge">
+        <div class="bar"><i></i><i></i><i></i><span>create-front — zsh</span></div>
+<pre><span class="t-dim">$</span> pnpm create @omniguider/front
+<span class="t-q">?</span> 專案名稱 <span class="t-dim">›</span> nmmba-front
+<span class="t-q">?</span> 要安裝 JSBridge 嗎？
+  不需要
+  只裝共用 SDK
+<span class="t-sel">❯ 安裝專案 JSBridge（contract）</span>
+
+<span class="t-ok">✓</span> 已安裝 @omniguider/nmmba-bridge-contract
+<span class="t-ok">✓</span> 已產生 src/bridge/appBridge.ts</pre>
+      </div>
+      <p class="caption">示意畫面：問題文字為簡化後的示意，對應 create-front 的 <code>--bridge contract</code> 選項。</p>
+    </div>
+    <div class="stack-sm">
+      <h3>原本唯一的安裝入口：建立前端專案時順便裝</h3>
+      <p>用 create-front 開新專案時選「安裝專案 JSBridge」，就會自動裝好套件、產生初始化檔。</p>
+      <div class="callout pain"><b>缺的那一塊：沒辦法「單獨」安裝專案 JSBridge。</b></div>
+      <ul class="gaps">
+        <li><b>已經存在的前端專案</b></li>
+        <li><b>專案還沒有規格</b></li>
+        <li><b>規格要加新指令</b></li>
+      </ul>
+      <p>這次的工作就是補上這一塊，再一路做到自動部署。</p>
+    </div>
+  </div>
 </section>
 
 <!-- 2 -->
-<section id="before" class="stack">
+<section id="before" class="stack era-before">
   <div>
     <p class="eyebrow">第 2 章 · 以前怎麼做</p>
+    <span class="era before">以前做法</span>
     <h2>以前前端想加一個指令，要經過這些步驟</h2>
     <p class="lead">以「網頁要多一個按鈕，請 App 打開地圖」為例：</p>
   </div>
@@ -467,7 +480,7 @@ git commit -am "feat(nmmba): add uiOpenMap"</div></div></li>
         <div class="cmd">pnpm run release -- nmmba --minor
 <span class="t-w">ERROR: JAVA_HOME is not set and no 'java' command
 could be found in your PATH.</span></div>
-        <span class="wait">只有負責人的電腦可以</span></div></li>
+       </div></li>
     <li><div class="who mt">負責人</div><div class="rail"><span class="dot"></span></div>
       <div class="body"><h3>從本機依序上傳三個地方</h3><p>一個接一個傳，中間任何一個失敗，要自己判斷哪些已經傳上去、哪些要補。</p>
         <div class="uploads">
@@ -488,7 +501,7 @@ could be found in your PATH.</span></div>
   </ol>
 
   <div class="why">
-    <div><h3>為什麼要找人？</h3><p>當時只有給負責人用的指令稿，沒有給前端用的工具；流程也只有負責人清楚。</p></div>
+    <div><h3>為什麼要找人？</h3><p>當時只有給負責人用的指令稿，沒有給前端用的工具；流程可能只有負責人清楚。</p></div>
     <div><h3>為什麼要手動？</h3><p>改 JSON、產生程式碼、檢查、提交、發版是分開的指令，沒有串起來。新增一個專案甚至要手動複製整個資料夾，很容易漏改設定。</p></div>
     <div><h3>為什麼綁電腦？</h3><p>Android 套件必須建置，建置需要數 GB 的開發環境，只有負責人的電腦裝好了。</p></div>
   </div>
@@ -513,17 +526,14 @@ could be found in your PATH.</span></div>
       <h3>交給 CI 自動部署</h3>
       <p>建置和上傳移到 Bitbucket Pipelines。前端電腦只要推一個版本標籤，不用再裝 Android 開發環境。用測試專案從頭到尾驗證過一次。</p>
     </div>
-    <div class="tl">
-      <h3>同仁實際使用</h3>
-      <p>同仁實際用工具建立新專案並發佈，過程不用負責人介入。之後依回饋補上 npm／yarn 專案的支援。</p>
-    </div>
   </div>
 </section>
 
 <!-- 4 -->
-<section id="now" class="stack">
+<section id="now" class="stack era-after">
   <div>
     <p class="eyebrow">第 4 章 · 現在怎麼做</p>
+    <span class="era after">現在做法</span>
     <h2>改一個檔案，下一個指令</h2>
     <p class="lead">同樣是「請 App 打開地圖」，現在前端只需要兩步。</p>
   </div>
@@ -650,14 +660,6 @@ omniguider create-bridge 0.6.4 — Web 專案安裝／建立／發佈 JSBridge �
     <div class="rowh">出錯時</div>
     <div class="before-c">自己判斷哪一端沒上傳成功</div>
     <div class="after-c">重跑 Pipeline，成功的那一端自動跳過</div>
-
-    <div class="rowh">新增專案</div>
-    <div class="before-c">複製現有資料夾，手動改設定</div>
-    <div class="after-c">工具選「＋ 建立新的專案契約」</div>
-
-    <div class="rowh">前端安裝</div>
-    <div class="before-c">自己設定套件來源、填版本號</div>
-    <div class="after-c">一個指令，選專案和版本</div>
   </div>
 </section>
 
@@ -708,15 +710,6 @@ omniguider create-bridge 0.6.4 — Web 專案安裝／建立／發佈 JSBridge �
         <li>Android：<code>com.omniguider:nmmba-bridge-contract:0.2.0</code></li>
         <li>實作新指令要做的事。</li>
       </ul>
-    </div>
-    <div class="role">
-      <h3>請不要這樣做</h3>
-      <ol class="rules">
-        <li>不要手改 <code>*.generated.*</code> 檔案，下次產生會被蓋掉。</li>
-        <li>不要自己打 <code>"nmmba.ui.xxx"</code> 字串，用產生的常數。</li>
-        <li>不要手動建立或刪除版本標籤，推標籤就等於發佈。</li>
-        <li>Pipeline 失敗時重跑它，不要改回手動上傳。</li>
-      </ol>
     </div>
   </div>
 </section>
